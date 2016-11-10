@@ -1,0 +1,25 @@
+{
+  "showLegend": false,
+  "contextMenu": {
+    "ZoomTo": false,
+    "Transparency": true,
+    "EnableOrDisablePopup": false,
+    "MoveupOrMovedown": false,
+    "OpenAttributeTable": false,
+    "DescriptionOrShowItemDetailsOrDownload": false
+  },
+  "layerOptions": {
+    "SBI_Operations_4719": {
+      "display": true
+    },
+    "SBI_Operations_6501": {
+      "display": true
+    },
+    "SBI_Operations_7904": {
+      "display": true
+    },
+    "SBI_Operations_8820": {
+      "display": true
+    }
+  }
+}

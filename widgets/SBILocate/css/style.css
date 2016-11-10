@@ -1,0 +1,9 @@
+.jimu-widget-sbi-locate .help-block {
+        display: none;
+}
+.jimu-widget-sbi-locate .has-error .help-block {
+    display: inline;
+}
+.jimu-widget-sbi-locate .has-error [data-dojo-attach-point='errorMsg'] {
+    display: inline-block;
+}

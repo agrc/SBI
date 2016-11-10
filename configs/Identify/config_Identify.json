@@ -1,0 +1,206 @@
+{
+  "identifylayeroption": "visible",
+  "identifytolerance": 5,
+  "defaultzoomscale": 5000,
+  "keepidentifyactive": true,
+  "returngeometryforzoom": true,
+  "enablelineselect": false,
+  "enablefreehandlineselect": false,
+  "enablepolylineselect": false,
+  "enableextentselect": false,
+  "enabletriangleselect": false,
+  "enablepolyselect": false,
+  "enablefreehandpolyselect": false,
+  "enablecircleselect": false,
+  "enableellipseselect": false,
+  "enablegraphicclickinfo": true,
+  "usemaptime": false,
+  "infoautoclosemilliseconds": 2000,
+  "autoactivatedtool": "point",
+  "disablelayerdropdown": false,
+  "disablealllayerschoice": false,
+  "replacenullswithemptystring": true,
+  "enablemouseoverrecordinfo": false,
+  "enablemouseovergraphicsinfo": false,
+  "layers": {
+    "onlythese": false,
+    "layer": [
+      {
+        "name": "Law Enforcement Boundaries",
+        "url": "http://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/LawEnforcementBoundaries/FeatureServer",
+        "id": 0,
+        "zoomscale": "1500",
+        "forcescale": true,
+        "fields": {
+          "all": false,
+          "field": [
+            {
+              "name": "NAME",
+              "alias": "NAME"
+            }
+          ]
+        },
+        "links": {}
+      },
+      {
+        "name": "UHP Dispatch",
+        "url": "http://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/UHPDispatch/FeatureServer",
+        "id": 0,
+        "zoomscale": "1500",
+        "forcescale": true,
+        "fields": {
+          "all": false,
+          "field": [
+            {
+              "name": "DISPATCH",
+              "alias": "DISPATCH"
+            }
+          ]
+        },
+        "links": {}
+      },
+      {
+        "name": "State Court Districts",
+        "url": "http://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/StateCourtDistricts/FeatureServer",
+        "id": 0,
+        "zoomscale": "2000",
+        "forcescale": true,
+        "fields": {
+          "all": false,
+          "field": [
+            {
+              "name": "DISTRICT",
+              "alias": "DISTRICT"
+            }
+          ]
+        },
+        "links": {}
+      },
+      {
+        "name": "City Courts",
+        "url": "http://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Courts_City/FeatureServer",
+        "id": 0,
+        "zoomscale": "2000",
+        "forcescale": true,
+        "fields": {
+          "all": false,
+          "field": [
+            {
+              "name": "COURT",
+              "alias": "COURT"
+            }
+          ]
+        },
+        "links": {}
+      },
+      {
+        "name": "County Courts",
+        "url": "http://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/Courts_County/FeatureServer",
+        "id": 0,
+        "zoomscale": "2000",
+        "forcescale": true,
+        "fields": {
+          "all": false,
+          "field": [
+            {
+              "name": "COURT",
+              "alias": "COURT"
+            }
+          ]
+        },
+        "links": {}
+      }
+    ],
+    "excludelayer": []
+  },
+  "symbols": {
+    "simplemarkersymbol": {
+      "color": [
+        68,
+        140,
+        203,
+        153
+      ],
+      "size": 8,
+      "angle": 0,
+      "xoffset": 0,
+      "yoffset": 0,
+      "type": "esriSMS",
+      "style": "esriSMSCircle",
+      "outline": {
+        "color": [
+          255,
+          255,
+          255,
+          153
+        ],
+        "width": 1,
+        "type": "esriSLS",
+        "style": "esriSLSSolid"
+      }
+    },
+    "picturemarkersymbol": {
+      "url": "images/i_info.png",
+      "height": "20",
+      "width": "20",
+      "type": "esriPMS",
+      "angle": "0"
+    },
+    "simplelinesymbol": {
+      "type": "esriSLS",
+      "style": "esriSLSSolid",
+      "color": [
+        68,
+        140,
+        203,
+        153
+      ],
+      "width": 2
+    },
+    "simplefillsymbol": {
+      "color": [
+        68,
+        140,
+        203,
+        153
+      ],
+      "outline": {
+        "color": [
+          68,
+          140,
+          203,
+          153
+        ],
+        "width": 2,
+        "type": "esriSLS",
+        "style": "esriSLSSolid"
+      },
+      "type": "esriSFS",
+      "style": "esriSFSSolid"
+    }
+  },
+  "resultFormat": {
+    "attTitlesymbol": {
+      "bold": false,
+      "italic": true,
+      "underline": false,
+      "color": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    "attValuesymbol": {
+      "bold": false,
+      "italic": false,
+      "underline": false,
+      "color": [
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  }
+}

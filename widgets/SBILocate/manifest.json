@@ -1,0 +1,22 @@
+{
+  "name": "SBILocate",
+  "platform": "HTML",
+  "version": "1.0.0",
+  "author": "Steve Gourley",
+  "description": "This widget zooms to a geocoded address. If the geocode fails, it zooms to the city or zip code.",
+  "copyright": "2016 Automated Geographic Reference Center",
+  "license": "MIT",
+  "wabVersion": "2.0.1",
+  "properties": {
+    "hasStyle": true,
+    "hasConfig": true,
+    "hasUIFile": true,
+    "hasLocale": false,
+    "hasSettingPage": false,
+    "hasSettingUIFile": false,
+    "hasSettingLocale": false,
+    "hasSettingStyle": false,
+    "IsController": false,
+    "supportMultiInstance": false
+  }
+}
