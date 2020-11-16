@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,15 +15,18 @@
 ///////////////////////////////////////////////////////////////////////////
 
 define([
-    'dojo/_base/declare',
-    'dijit/_WidgetsInTemplateMixin',
-    'jimu/BaseWidgetSetting',
-    'jimu/dijit/Message',
-    'dijit/form/NumberTextBox',
-    'jimu/dijit/CheckBox'
-  ],
-  function(
+  'dojo/_base/declare',
+  'dojo/on',
+  'dojo/_base/lang',
+  'dijit/_WidgetsInTemplateMixin',
+  'jimu/BaseWidgetSetting',
+  'jimu/dijit/Message',
+  'dijit/form/NumberTextBox',
+  'jimu/dijit/CheckBox'
+],
+  function (
     declare,
+    on, lang,
     _WidgetsInTemplateMixin,
     BaseWidgetSetting,
     Message) {
@@ -31,7 +34,7 @@ define([
       //these two properties is defined in the BaseWidget
       baseClass: 'jimu-widget-mylocation-setting',
 
-      startup: function() {
+      startup: function () {
         this.inherited(arguments);
         if (!this.config.locateButton) {
           this.config.locateButton = {};
@@ -39,23 +42,29 @@ define([
         if (!this.config.locateButton.geolocationOptions) {
           this.config.locateButton.geolocationOptions = {};
         }
+
+        this.own(on(this.highlightLocation, 'change', lang.hitch(this, '_compassParamHanlder')));
+        this.own(on(this.useTracking, 'change', lang.hitch(this, '_compassParamHanlder')));
+
         this.setConfig(this.config);
       },
 
-      setConfig: function(config) {
+      setConfig: function (config) {
         this.config = config;
+        this._setCompassParam();
+
         if (config.locateButton.geolocationOptions &&
           config.locateButton.geolocationOptions.timeout) {
           this.timeout.set('value', config.locateButton.geolocationOptions.timeout);
         }
         if (config.locateButton.highlightLocation ||
-          typeof(config.locateButton.highlightLocation) === "undefined") {
+          typeof (config.locateButton.highlightLocation) === "undefined") {
           this.highlightLocation.setValue(true);
         } else {
           this.highlightLocation.setValue(false);
         }
         if (config.locateButton.useTracking ||
-          typeof(config.locateButton.useTracking) === "undefined") {
+          typeof (config.locateButton.useTracking) === "undefined") {
           this.useTracking.setValue(true);
         } else {
           this.useTracking.setValue(false);
@@ -66,9 +75,9 @@ define([
         }
       },
 
-      getConfig: function() {
+      getConfig: function () {
         //check inputs
-        if (!this.timeout.value || !this.scale.value) {
+        if (!this.isValid()) {
           new Message({
             message: this.nls.warning
           });
@@ -79,10 +88,38 @@ define([
         this.config.locateButton.highlightLocation = this.highlightLocation.checked;
         // }
         this.config.locateButton.useTracking = this.useTracking.checked;
-
         this.config.locateButton.scale = parseFloat(this.scale.value);
-        return this.config;
-      }
 
+        this._getCompassParam();
+
+        return this.config;
+      },
+
+      isValid: function () {
+        if (!this.scale.isValid() || !this.timeout.isValid()) {
+          return false;
+        }
+
+        return true;
+      },
+
+      //compass
+      _compassParamHanlder: function () {
+        if (this.highlightLocation.checked && this.useTracking.checked) {
+          this.useCompass.set("disabled", false);
+          this.useAccCircle.set('disabled', false);
+        } else {
+          this.useCompass.set("disabled", true);
+          this.useAccCircle.set('disabled', true);
+        }
+      },
+      _getCompassParam: function () {
+        this.config.useCompass = this.useCompass.checked;
+        this.config.useAccCircle = this.useAccCircle.checked;
+      },
+      _setCompassParam: function () {
+        this.useCompass.setValue(this.config.useCompass);
+        this.useAccCircle.setValue(this.config.useAccCircle);
+      }
     });
   });

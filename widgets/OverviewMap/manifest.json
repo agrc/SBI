@@ -1,8 +1,8 @@
 {
   "name": "OverviewMap",
   "platform": "HTML",
-  "version": "2.2",
-  "wabVersion": "2.2",
+  "version": "2.18",
+  "wabVersion": "2.18",
   "author": "Esri R&D Center Beijing",
   "description": "",
   "copyright": "",
@@ -11,6 +11,7 @@
     "inPanel": false,
     "hasUIFile": false,
     "hasStyle": false,
-    "supportMultiInstance": false
+    "supportMultiInstance": false,
+    "hasVersionManager": true
   }
 }

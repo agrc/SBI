@@ -1,7 +1,7 @@
-<div>
+<div aria-label="${label}">
   <div class="docker jimu-main-background jimu-corner-all">
-    <div class="previousBtn jimu-corner-left" data-dojo-attach-point="previousButton"
-         data-dojo-attach-event="onclick:_previous">
+    <div role="button" aria-label="${previousNls}" class="previousBtn jimu-corner-left" data-dojo-attach-point="previousButton"
+      data-dojo-attach-event="onclick:_previous,onkeydown:_previousKeyDown">
     </div>
     <div class="seperatorLeft" data-dojo-attach-point="seperatorLeft"></div>
 
@@ -10,8 +10,8 @@
     </div>
 
     <div class="seperatorRight" data-dojo-attach-point="seperatorRight"></div>
-    <div class="nextBtn jimu-corner-right" data-dojo-attach-point="nextButton"
-         data-dojo-attach-event="onclick:_next">
+    <div role="button" aria-label="${nextNls}" class="nextBtn jimu-corner-right" data-dojo-attach-point="nextButton"
+      data-dojo-attach-event="onclick:_next,onkeydown:_nextKeyDown">
     </div>
   </div>
 </div>

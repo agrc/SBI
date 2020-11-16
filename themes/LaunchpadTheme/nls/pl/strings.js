@@ -1,5 +1,5 @@
 define({
   "_themeLabel": "Motyw Launchpad",
-  "_layout_default": "Układ domyślny",
-  "_layout_right": "Układ prawostronny"
+  "_layout_default": "Kompozycja domyślna",
+  "_layout_right": "Kompozycja prawostronna"
 });

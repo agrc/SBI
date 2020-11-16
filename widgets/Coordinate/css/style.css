@@ -11,14 +11,16 @@
   border-bottom: 1px solid rgba(255,255,255,0.4);
 }
 .jimu-widget-coordinate .coordinate-locate{
-  width: 17px;
-  height: 17px;
+  width: 13px;
+  height: 13px;
   background: url(images/locate.png) center no-repeat;
+  margin: 2px;
 }
 .jimu-widget-coordinate .coordinate-locate-container{
   width: 17px;
   height: 17px;
   border-right: 1px solid rgba(255,255,255,0.4);
+  /*margin: 1px;*/
 }
 .jimu-widget-coordinate .coordinate-locate-container:hover .coordinate-locate{
   background: url(images/locate-hover.png) center no-repeat !important;
@@ -42,13 +44,14 @@
 .jimu-widget-coordinate .coordinate-foldable-container {
   border-left: 1px solid rgba(255,255,255,0.4);
   height: 17px;
+  /*margin: 1px;*/
 }
 .jimu-widget-coordinate .coordinate-foldable{
   background: url(images/more.png) center no-repeat;
   cursor: pointer;
-  width: 17px;
-  height: 15px;
-  margin: 1px 0;
+  width: 13px;
+  height: 13px;
+  margin: 2px;
 }
 .jimu-widget-coordinate:hover .coordinate-foldable{
   background-image: url(images/more-hover.png);
@@ -73,6 +76,7 @@
 .claro .jimu-widget-coordinate .dijitMenuTable {
   background: transparent;
   border-style: none;
+  padding: 2px;
 }
 .claro .jimu-widget-coordinate .dijitMenuItem {
   color: #fff;
@@ -81,6 +85,7 @@
   border-style: none;
   text-align: left;
   padding: 4px 2px;
+  font-size: 10px;
 }
 .claro .jimu-widget-coordinate .dijitMenu .dijitMenuItem.selected-item{
   font-weight: bold;
@@ -101,4 +106,9 @@
 .claro .jimu-widget-coordinate .dijitMenu .dijitMenuItemSelected td{
   background: #000;
   color: #fff;
+}
+
+/* DartTheme */
+.DartTheme .jimu-widget-coordinate {
+  z-index: 102 !important;
 }

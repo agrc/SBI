@@ -10,9 +10,9 @@ define({
   "confirmOption": "アプリが起動するたびに、必ずこのスプラッシュ スクリーンを表示します。",
   "backgroundColor": "背景色",
   "content": "コンテンツ",
-  "contentDescription": "スプラッシュ画面に表示されるコンテンツの定義",
+  "contentDescription": "スプラッシュ画面に表示されるコンテンツを定義します。",
   "appearance": "表示設定",
-  "appearanceDescription": "スプラッシュ画面の外観の設定",
+  "appearanceDescription": "スプラッシュ画面の外観を設定します。",
   "size": "サイズ",
   "width": "幅",
   "height": "高さ",
@@ -22,7 +22,6 @@ define({
   "imageFill": "画像塗りつぶし",
   "chooseFile": "ファイルの選択",
   "noFileChosen": "ファイルが選択されていません",
-  "transparency": "透過表示",
   "sizeFill": "塗りつぶし",
   "sizeFit": "調整",
   "sizeStretch": "引き伸ばして塗りつぶし",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "ボタンの色",
   "buttonText": "ボタンのテキスト",
   "buttonTextColor": "ボタンのテキスト色",
+  "contentAlign": "コンテンツの配置",
+  "alignTop": "上",
+  "alignMiddle": "中",
   "maskColor": "マスク色",
   "options": "オプション",
-  "optionsDescription": "スプラッシュ画面の振舞いの設定"
+  "optionsDescription": "スプラッシュ画面の振舞いを設定します。"
 });

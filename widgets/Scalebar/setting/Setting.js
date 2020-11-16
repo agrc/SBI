@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,26 +18,23 @@ define([
     'dojo/_base/declare',
     'dojo/_base/html',
     'dijit/_WidgetsInTemplateMixin',
-    'dijit/registry',
     'jimu/BaseWidgetSetting',
     'jimu/portalUtils',
     'dojo/_base/lang',
     'dojo/on',
-    'dojo/query',
     "dojo/Deferred",
+    'jimu/dijit/CheckBox',
     "jimu/dijit/RadioBtn"
   ],
   function(
     declare,
     html,
     _WidgetsInTemplateMixin,
-    registry,
     BaseWidgetSetting,
     PortalUtils,
     lang,
     on,
-    query,
-    Deferred) {
+    Deferred, CheckBox) {
     return declare([BaseWidgetSetting, _WidgetsInTemplateMixin], {
       //these two properties is defined in the BaseWidget
       baseClass: 'jimu-widget-scalebar-setting',
@@ -51,23 +48,41 @@ define([
         }
         this.set('selectUnit', '');
         this.set('selectStyle', '');
+
         this.own(on(this.englishNode, 'click', lang.hitch(this, function() {
           this.set('selectUnit', 'english');
+          this._selectItem('english');
         })));
         this.own(on(this.metricNode, 'click', lang.hitch(this, function() {
           this.set('selectUnit', 'metric');
+          this._selectItem('metric');
         })));
         this.own(on(this.dualNode, 'click', lang.hitch(this, function() {
           this.set('selectUnit', 'dual');
-          this.set('selectStyle', 'line');
+          this._selectItem('dual');
+          //this.set('selectStyle', 'line');
+          //this._selectItem('line');
         })));
 
         this.own(on(this.lineNode, 'click', lang.hitch(this, function() {
           this.set('selectStyle', 'line');
+          this._selectItem('line');
         })));
         this.own(on(this.rulerNode, 'click', lang.hitch(this, function() {
           this.set('selectStyle', 'ruler');
+          this._selectItem('ruler');
         })));
+        this.own(on(this.numberNode, 'click', lang.hitch(this, function() {
+          this.set('selectStyle', 'number');
+          this._selectItem('number');
+        })));
+
+        this.numberLabel.innerHTML = (window.isRTL ? "1000 &nbsp;:&nbsp; 1" : "1 &nbsp;:&nbsp; 1000");
+
+        this.separator = new CheckBox({
+          label: this.nls.separator,
+          checked: false
+        }, this.separator);
 
         this.watch('selectUnit', this._updateUnit);
         this.watch('selectStyle', this._updateStyle);
@@ -79,30 +94,52 @@ define([
         var _unit = this.get('selectUnit');
         if (_unit === 'metric') {
           _selectedUnitNode = this.metricNode;
-          html.setStyle(this.rulerNode, 'display', 'inline-block');
+          //html.setStyle(this.rulerNode, 'display', 'inline-block');
+          //html.removeClass(this.rulerNode, "hide");
         } else if (_unit === 'dual') {
           _selectedUnitNode = this.dualNode;
-          html.setStyle(this.rulerNode, 'display', 'none');
+          //html.setStyle(this.rulerNode, 'display', 'none');
+          //html.addClass(this.rulerNode, "hide");
         } else {
           _selectedUnitNode = this.englishNode;
-          html.setStyle(this.rulerNode, 'display', 'inline-block');
+          //html.setStyle(this.rulerNode, 'display', 'inline-block');
+          //html.removeClass(this.rulerNode, "hide");
         }
 
-        var _radio = registry.byNode(query('.jimu-radio', _selectedUnitNode)[0]);
-        _radio.check(true);
+        if(_selectedUnitNode && _selectedUnitNode.setChecked){
+          _selectedUnitNode.setChecked(true);
+        }
       },
 
       _updateStyle: function() {
         var _selectedStyleNode = null;
         var _style = this.get('selectStyle');
-        if (_style === 'ruler') {
-          _selectedStyleNode = this.rulerNode;
-        } else {
+
+        html.addClass(this.roundNumber, "hide");
+        html.removeClass(this.unitConfig, "hide");
+        html.removeClass(this.englishNode, "hide");
+        html.removeClass(this.metricNode, "hide");
+        html.removeClass(this.dualNode, "hide");
+
+        if (_style === 'line') {
           _selectedStyleNode = this.lineNode;
+        } else if(_style === 'ruler'){
+          _selectedStyleNode = this.rulerNode;
+          html.addClass(this.dualNode, "hide");
+
+          if ("dual" === this.get('selectUnit')) {
+            this.set('selectUnit', 'english');
+            this._selectItem('english');
+          }
+        } else if(_style === 'number'){
+          _selectedStyleNode = this.numberNode;
+          html.removeClass(this.roundNumber, "hide");
+          html.addClass(this.unitConfig, "hide");
         }
 
-        var _radio = registry.byNode(query('.jimu-radio', _selectedStyleNode)[0]);
-        _radio.check(true);
+        if(_selectedStyleNode && _selectedStyleNode.setChecked){
+          _selectedStyleNode.setChecked(true);
+        }
       },
 
       _processConfig: function(configJson) {
@@ -119,20 +156,51 @@ define([
         return def.promise;
       },
 
+      isValid: function () {
+        if ('number' === this.selectStyle) {
+          return this.spinner.isValid();
+        } else {
+          return true;
+        }
+      },
+
       setConfig: function(config) {
         this.config = config;
 
         this._processConfig(config.scalebar).then(lang.hitch(this, function(scalebar) {
           this.set('selectUnit', scalebar.scalebarUnit);
-          this.set('selectStyle', scalebar.scalebarStyle || 'line');
+          this._selectItem(scalebar.scalebarUnit);
+
+          var lineStyle = scalebar.scalebarStyle || 'line';
+          this.set('selectStyle', lineStyle);
+          this._selectItem(lineStyle);
+
+          if (isFinite(parseInt(config.scalebar.decimalPlaces, 10))) {
+            this.spinner.set('value', parseInt(config.scalebar.decimalPlaces, 10));
+          }
+          if (config.scalebar.addSeparator) {
+            this.separator.setValue(config.scalebar.addSeparator);
+          }
         }));
       },
 
       getConfig: function() {
+        if (false === this.isValid()) {
+          return false;
+        }
+
         this.config.scalebar.scalebarUnit = this.get('selectUnit');
         this.config.scalebar.scalebarStyle = this.get('selectStyle');
-        return this.config;
-      }
 
+        this.config.scalebar.decimalPlaces = this.spinner.get('value');
+        this.config.scalebar.addSeparator = this.separator.getValue();
+        return this.config;
+      },
+
+      _selectItem: function(name) {
+        if(this[name] && this[name].setChecked){
+          this[name].setChecked(true);
+        }
+      }
     });
   });

@@ -1,10 +1,6 @@
-.jimu-widget-header .header-section{
-  height: 100%;
-  float: left;
-}
-.jimu-widget-header .container-section{
-  height: 100%;
-  float: left;
+.jimu-widget-header {
+  display: flex;
+  max-width: calc(100% - 300px);
 }
 
 .jimu-widget-header .hide-logo{
@@ -12,29 +8,51 @@
 }
 
 .jimu-widget-header .logo {
+  margin-right: auto;
   padding: 0 10px;
+  margin-top: -2px;
+  flex: 0 0 auto;
 }
 
-.jimu-widget-header .logo > img {
+.jimu-widget-header .logo img {
   margin: 0 auto;
+  max-height: 40px;
 }
 
 .jimu-widget-header .titles{
   height: 100%;
+  min-width: 10px;
+  display: flex;
 }
 
 .jimu-widget-header .jimu-title{
+  padding: 0 5px;
   text-align: center;
   height: 100%;
+  margin: 0;
 }
 
 .jimu-widget-header .jimu-subtitle{
+  padding: 0 5px;
   text-align: center;
   height: 100%;
+  margin: 0;
 }
+
+.jimu-widget-header .search-bar {
+  width: auto;
+  margin-left: auto;
+  height: 100%;
+  flex: 0 0 auto;
+}
+
+.jimu-widget-header .search-bar .jimu-widget-search {
+  margin: 8px 0 !important;
+}
+
 .jimu-widget-header .links{
-  position: absolute;
   background-color: #fff;
+  position: absolute;
 }
 
 .jimu-widget-header .links.hidden {
@@ -43,12 +61,8 @@
 .jimu-widget-header .links-icon{
   margin: 10px;
   padding: 5px;
-  position: absolute;
-  right: 0;
-}
-.jimu-rtl .jimu-widget-header .links-icon{
-  right: auto;
-  left: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .jimu-widget-header .links-icon img{

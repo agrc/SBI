@@ -39,199 +39,202 @@
 }
 
 .launchpad-icon-plus:before {
-  content: "a";
+  content: "\61";
 }
 .launchpad-icon-minus:before {
-  content: "b";
+  content: "\62";
 }
 .launchpad-icon-search:before {
-  content: "c";
+  content: "\63";
 }
 .launchpad-icon-arrow-up:before {
-  content: "d";
+  content: "\64";
 }
 .launchpad-icon-arrow-right:before {
-  content: "e";
+  content: "\65";
 }
 .launchpad-icon-arrow-left:before {
-  content: "f";
+  content: "\66";
 }
 .launchpad-icon-arrow-down:before {
-  content: "g";
+  content: "\67";
 }
 .launchpad-icon-home:before {
-  content: "h";
+  content: "\68";
 }
 .launchpad-icon-locate:before {
-  content: "i";
+  content: "\69";
 }
 .launchpad-icon-clear:before {
-  content: "j";
+  content: "\6a";
 }
 .launchpad-icon-check:before {
-  content: "k";
+  content: "\6b";
 }
 .launchpad-icon-double-arrow-up:before {
-  content: "l";
+  content: "\6c";
 }
 .launchpad-icon-double-arrow-down:before {
-  content: "m";
+  content: "\6d";
 }
 .launchpad-icon-arrow-drop-down:before {
-  content: "n";
+  content: "\6e";
 }
 .launchpad-icon-refresh:before {
-  content: "o";
+  content: "\6f";
 }
 .launchpad-icon-arrow-drop-up:before {
-  content: "p";
+  content: "\70";
 }
 .launchpad-icon-arrow-drop-left:before {
-  content: "q";
+  content: "\71";
 }
 .launchpad-icon-arrow-drop-right:before {
-  content: "r";
+  content: "\72";
 }
 .launchpad-icon-previous:before {
-  content: "s";
+  content: "\73";
 }
 .launchpad-icon-next:before {
-  content: "t";
+  content: "\74";
 }
 .launchpad-icon-play:before {
-  content: "u";
+  content: "\75";
 }
 .launchpad-icon-pause:before {
-  content: "v";
+  content: "\76";
 }
 .launchpad-icon-error:before {
-  content: "w";
+  content: "\77";
 }
 .launchpad-icon-calendar:before {
-  content: "x";
+  content: "\78";
 }
 .launchpad-icon-folder-open:before {
-  content: "y";
+  content: "\79";
 }
 .launchpad-icon-folder-closed:before {
-  content: "z";
+  content: "\7a";
 }
 .launchpad-icon-add-circle:before {
-  content: "A";
+  content: "\41";
 }
 .launchpad-icon-apps:before {
-  content: "B";
+  content: "\42";
 }
 .launchpad-icon-map-pin:before {
-  content: "C";
+  content: "\43";
 }
 .launchpad-icon-three-dots:before {
-  content: "D";
+  content: "\44";
 }
 .launchpad-icon-visibility-on:before {
-  content: "E";
+  content: "\45";
 }
 .launchpad-icon-visibility-off:before {
-  content: "F";
+  content: "\46";
 }
 .launchpad-icon-swipe-horizontal:before {
-  content: "G";
+  content: "\47";
 }
 .launchpad-icon-swipe-vertical:before {
-  content: "H";
+  content: "\48";
 }
 .launchpad-icon-link:before {
-  content: "I";
+  content: "\49";
 }
 .launchpad-icon-slide:before {
-  content: "J";
+  content: "\4a";
 }
 .launchpad-icon-time:before {
-  content: "K";
+  content: "\4b";
 }
 .launchpad-icon-grid:before {
-  content: "L";
+  content: "\4c";
 }
 .launchpad-icon-fullscreen:before {
-  content: "M";
+  content: "\4d";
 }
 .launchpad-icon-fullscreen-exit:before {
-  content: "N";
+  content: "\4e";
 }
 .launchpad-icon-print:before {
-  content: "O";
+  content: "\4f";
 }
 .launchpad-icon-point:before {
-  content: "P";
+  content: "\50";
 }
 .launchpad-icon-line:before {
-  content: "Q";
+  content: "\51";
 }
 .launchpad-icon-polyline:before {
-  content: "R";
+  content: "\52";
 }
 .launchpad-icon-polyline-freehand:before {
-  content: "S";
+  content: "\53";
 }
 .launchpad-icon-triangle:before {
-  content: "T";
+  content: "\54";
 }
 .launchpad-icon-rectangle-fill:before {
-  content: "U";
+  content: "\55";
 }
 .launchpad-icon-circle-fill:before {
-  content: "V";
+  content: "\56";
 }
 .launchpad-icon-ellipse-fill:before {
-  content: "W";
+  content: "\57";
 }
 .launchpad-icon-polygon-fill:before {
-  content: "X";
+  content: "\58";
 }
 .launchpad-icon-polygon-freehand-fill:before {
-  content: "Y";
+  content: "\59";
 }
 .launchpad-icon-text:before {
-  content: "Z";
+  content: "\5a";
 }
 .launchpad-icon-cursor:before {
-  content: "0";
+  content: "\30";
 }
 .launchpad-icon-selection-add:before {
-  content: "1";
+  content: "\31";
 }
 .launchpad-icon-selection-subtract:before {
-  content: "2";
+  content: "\32";
 }
 .launchpad-icon-trash:before {
-  content: "3";
+  content: "\33";
 }
 .launchpad-icon-cut:before {
-  content: "5";
+  content: "\35";
 }
 .launchpad-icon-union:before {
-  content: "6";
+  content: "\36";
 }
 .launchpad-icon-reshape:before {
-  content: "7";
+  content: "\37";
 }
 .launchpad-icon-undo:before {
-  content: "8";
+  content: "\38";
 }
 .launchpad-icon-redo:before {
-  content: "9";
+  content: "\39";
 }
 .launchpad-icon-edit:before {
-  content: "4";
+  content: "\34";
 }
 .launchpad-icon-pin:before {
-  content: "!";
+  content: "\21";
 }
 .launchpad-icon-measurement:before {
-  content: "\"";
+  content: "\22";
 }
 .launchpad-icon-measurement-area:before {
-  content: "#";
+  content: "\23";
+}
+.launchpad-icon-arrow:before {
+  content: "\2a";
 }
 .esriPopup .titlePane {
   background-color: #3b8fc4;

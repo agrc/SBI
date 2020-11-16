@@ -12,7 +12,7 @@ define({
   "content": "เนื้อหา",
   "contentDescription": "กำหนดเนื้อหาที่แสดงบนหน้าจอ",
   "appearance": "รูปลักษณ์",
-  "appearanceDescription": "ตั้งค่าการแสดงบนหน้าจอ",
+  "appearanceDescription": "ตั้งลักษณะของหน้าจอในขณะเริ่ม",
   "size": "ขนาด",
   "width": "ความกว้าง",
   "height": "ความสูง",
@@ -22,7 +22,6 @@ define({
   "imageFill": "เติมภาพ",
   "chooseFile": "เลือกไฟล์",
   "noFileChosen": "ไม่มีไฟล์ที่ถูกเลือก",
-  "transparency": "โปร่งแสง",
   "sizeFill": "กรอก",
   "sizeFit": "พอดี",
   "sizeStretch": "ยืดเพื่อเติม",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "สีของปุ่ม",
   "buttonText": "ตัวอักษรของปุ่ม",
   "buttonTextColor": "ตัวอักษร",
+  "contentAlign": "การจัดตำแหน่งเนื้อหา",
+  "alignTop": "บน",
+  "alignMiddle": "กลาง",
   "maskColor": "สีของหน้ากาก",
   "options": "ตัวเลือก",
-  "optionsDescription": "ตั้งค่าพฤติกรรมของหน้าจอ"
+  "optionsDescription": "ตั้งค่าการทำงานของหน้าจอในขณะเริ่ม"
 });

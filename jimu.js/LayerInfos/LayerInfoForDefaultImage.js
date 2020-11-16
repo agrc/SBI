@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@ define([
   'dojo/promise/all',
   'dojo/aspect',
   'esri/request',
-  './LayerInfoForDefault'
-], function(declare, domConstruct, array, lang, Deferred, all, aspect, esriRequest, LayerInfoForDefault) {
+  './LayerInfoForDefault',
+  '../utils'
+], function(declare, domConstruct, array, lang, Deferred, all, aspect, esriRequest, LayerInfoForDefault, jimuUtils) {
   var clazz = declare(LayerInfoForDefault, {
     constructor: function() {
       this._addImageServiceLayerType();
@@ -89,7 +90,7 @@ define([
 
               domConstruct.create("div", {
                 "class": "legend-label jimu-float-leading",
-                "innerHTML": legend.label || " "
+                "innerHTML": jimuUtils.sanitizeHTML(legend.label) || " "
               }, legendDiv);
             }, this);
           }, this);
@@ -181,6 +182,15 @@ define([
         def.resolve(resultValue);
       });
       return def;
+    },
+
+    /***************************************************
+     * methods for control service definition
+     ***************************************************/
+    _getServiceDefinition: function() {
+      var url = this.getUrl();
+      var requestProxy = this._serviceDefinitionBuffer.getRequest(this.subId);
+      return requestProxy.request(url);
     },
 
     /****************

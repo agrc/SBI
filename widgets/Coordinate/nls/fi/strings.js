@@ -12,6 +12,7 @@ define({
   "Default": "Oletus",
   "Inches": "tuumaa",
   "Foot": "Jalkaa",
+  "Foot_US": "Jalat_US",
   "Yards": "Jaardia",
   "Miles": "Mailia",
   "Nautical_Miles": "Meripeninkulmaa",
@@ -21,7 +22,7 @@ define({
   "Kilometers": "Kilometriä",
   "Decimeters": "desimetriä",
   "Decimal_Degrees": "Asteet",
-  "Degree_Minutes_Seconds": "astetta, minuuttia, sekuntia",
+  "Degree_Minutes_Seconds": "Astetta minuuttia sekuntia",
   "MGRS": "MGRS",
   "USNG": "USNG"
 });

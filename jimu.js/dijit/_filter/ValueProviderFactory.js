@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,179 +16,628 @@
 
 define([
   'dojo/_base/lang',
+  'dojo/_base/array',
   'dojo/_base/declare',
+  './BlankValueProvider',
   './SimpleValueProvider',
   './TwoNumbersValueProvider',
   './TwoDatesValueProvider',
   './ListValueProvider',
+  './AdvancedListValueProvider',
+  './PredefinedValueProvider',
+  './NumberListValueProvider',
+  './DateIsInValueProvider',
+  'jimu/utils',
   'jimu/LayerInfos/LayerInfos'
 ],
-  function(lang, declare, SimpleValueProvider, TwoNumbersValueProvider, TwoDatesValueProvider, ListValueProvider,
-    LayerInfos) {
+  function(lang, array, declare, BlankValueProvider, SimpleValueProvider, TwoNumbersValueProvider,
+    TwoDatesValueProvider,
+    ListValueProvider,
+    AdvancedListValueProvider,
+    PredefinedValueProvider,
+    NumberListValueProvider, DateIsInValueProvider, jimuUtils, LayerInfos) {
 
+    var BLANK_VALUE_PROVIDER = "BLANK_VALUE_PROVIDER";
     var SIMPLE_VALUE_PROVIDER = "SIMPLE_VALUE_PROVIDER";
     var TWO_NUMBERS_VALUE_PROVIDER = "TWO_NUMBERS_VALUE_PROVIDER";
     var TWO_DATES_VALUE_PROVIDER = "TWO_DATES_VALUE_PROVIDER";
     var LIST_VALUE_PROVIDER = "LIST_VALUE_PROVIDER";
+    var NUMBER_LIST_VALUE_PROVIDER = "NUMBER_LIST_VALUE_PROVIDER";
+    var DATE_IS_IN_VALUE_PROVIDER = "DATE_IS_IN_VALUE_PROVIDER";
+
+    var ADVANCED_LIST_VALUE_PROVIDER = "ADVANCED_LIST_VALUE_PROVIDER";
+    var UNIQUE_PREDEFINED_VALUE_PROVIDER = "UNIQUE_PREDEFINED_VALUE_PROVIDER";
+    var MULTIPLE_PREDEFINED_VALUE_PROVIDER = "MULTIPLE_PREDEFINED_VALUE_PROVIDER";
 
     //operator + type => value provider
     var relationship = {
       //string
       stringOperatorIs: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER,
-          codedValue: LIST_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          codedValueProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true,
+          supportCaseSensitive: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
         }
       },
       stringOperatorIsNot: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          codedValueProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true,
+          supportCaseSensitive: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
         }
       },
       stringOperatorStartsWith: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
         }
       },
       stringOperatorEndsWith: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
         }
       },
       stringOperatorContains: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
         }
       },
       stringOperatorDoesNotContain: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
         }
       },
-      stringOperatorIsBlank: null,
-      stringOperatorIsNotBlank: null,
+      stringOperatorIsAnyOf: {
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        multiple:{
+          normalProviderType: ADVANCED_LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true,
+          supportCaseSensitive: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        }
+      },
+      stringOperatorIsNoneOf: {
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        multiple:{
+          normalProviderType: ADVANCED_LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true,
+          supportCaseSensitive: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true,
+          supportCaseSensitive: true
+        }
+      },
+      stringOperatorIsBlank: {
+        value: {
+          normalProviderType: BLANK_VALUE_PROVIDER
+        }
+      },
+      stringOperatorIsNotBlank: {
+        value: {
+          normalProviderType: BLANK_VALUE_PROVIDER
+        }
+      },
 
       //number
       numberOperatorIs: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER,
-          codedValue: LIST_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          codedValueProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       numberOperatorIsNot: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          codedValueProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       numberOperatorIsAtLeast: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       numberOperatorIsLessThan: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       numberOperatorIsAtMost: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       numberOperatorIsGreaterThan: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
         },
         unique: {
-          normal: LIST_VALUE_PROVIDER
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        },
+        uniquePredefined:{
+          normalProviderType: UNIQUE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
+        }
+      },
+      numberOperatorIsAnyOf: {
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        multiple:{
+          normalProviderType: ADVANCED_LIST_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
+        }
+      },
+      numberOperatorIsNoneOf: {
+        values:{
+          normalProviderType: SIMPLE_VALUE_PROVIDER
+        },
+        multiple:{
+          normalProviderType: ADVANCED_LIST_VALUE_PROVIDER,
+          supportAskForValue: true
+        },
+        multiplePredefined:{
+          normalProviderType: MULTIPLE_PREDEFINED_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       numberOperatorIsBetween: {
         value: {
-          normal: TWO_NUMBERS_VALUE_PROVIDER
+          normalProviderType: TWO_NUMBERS_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       numberOperatorIsNotBetween: {
         value: {
-          normal: TWO_NUMBERS_VALUE_PROVIDER
+          normalProviderType: TWO_NUMBERS_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
-      numberOperatorIsBlank: null,
-      numberOperatorIsNotBlank: null,
+      numberOperatorIsBlank: {
+        value: {
+          normalProviderType: BLANK_VALUE_PROVIDER
+        }
+      },
+      numberOperatorIsNotBlank: {
+        value: {
+          normalProviderType: BLANK_VALUE_PROVIDER
+        }
+      },
 
       //date
       dateOperatorIsOn: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
+        },
+        unique: {
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
         }
       },
       dateOperatorIsNotOn: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
+        },
+        unique: {
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        }
+      },
+      dateOperatorIsIn: {
+        value: {
+          normalProviderType: DATE_IS_IN_VALUE_PROVIDER,
+          supportAskForValue: true
+        }
+      },
+      dateOperatorIsNotIn: {
+        value: {
+          normalProviderType: DATE_IS_IN_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       dateOperatorIsBefore: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
+        },
+        unique: {
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
         }
       },
       dateOperatorIsAfter: {
         value: {
-          normal: SIMPLE_VALUE_PROVIDER
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
+        },
+        unique: {
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        }
+      },
+      dateOperatorIsOnOrBefore: {
+        value: {
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
+        },
+        unique: {
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        }
+      },
+      dateOperatorIsOnOrAfter: {
+        value: {
+          normalProviderType: SIMPLE_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
+        },
+        field: {
+          normalProviderType: LIST_VALUE_PROVIDER
+        },
+        unique: {
+          normalProviderType: LIST_VALUE_PROVIDER,
+          supportAskForValue: true,
+          filterCodedValueIfPossible: true
+        }
+      },
+      dateOperatorInTheLast: {
+        value: {
+          normalProviderType: NUMBER_LIST_VALUE_PROVIDER,
+          supportAskForValue: true
+        }
+      },
+      dateOperatorNotInTheLast: {
+        value: {
+          normalProviderType: NUMBER_LIST_VALUE_PROVIDER,
+          supportAskForValue: true
         }
       },
       dateOperatorIsBetween: {
         value: {
-          normal: TWO_DATES_VALUE_PROVIDER
+          normalProviderType: TWO_DATES_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
         }
       },
       dateOperatorIsNotBetween: {
         value: {
-          normal: TWO_DATES_VALUE_PROVIDER
+          normalProviderType: TWO_DATES_VALUE_PROVIDER,
+          supportAskForValue: true,
+          customVirtualDates: true
         }
       },
-      dateOperatorIsBlank: null,
-      dateOperatorIsNotBlank: null
+      dateOperatorIsBlank: {
+        value: {
+          normalProviderType: BLANK_VALUE_PROVIDER
+        }
+      },
+      dateOperatorIsNotBlank: {
+        value: {
+          normalProviderType: BLANK_VALUE_PROVIDER
+        }
+      }
     };
 
-    return declare([], {
+    var clazz = declare([], {
       nls: null,
-      url: null,
-      layerDefinition: null,
-      layerInfo: null,//jimu/LayerInfos/LayerInfo
-      featureLayerId: null,//optional
+      layerInfo: null,//jimu/LayerInfos/LayerInfo, maybe null
+      popupInfo: null,//webmap popupInfo, maybe null
+
+      //options:
+      url: null,//required
+      layerDefinition: null,//required
+      featureLayerId: null,//required
 
       constructor: function(options){
-        //{nls,url,layerDefinition}
+        //{url,layerDefinition}
         lang.mixin(this, options);
+        this.nls = window.jimuNls.filterBuilder;
         var layerInfosObj = LayerInfos.getInstanceSync();
         if(this.featureLayerId){
           this.layerInfo = layerInfosObj.getLayerOrTableInfoById(this.featureLayerId);
+          if(this.layerInfo){
+            this.popupInfo = this.layerInfo.getPopupInfo();
+          }
         }
       },
 
-      getValueProvider: function(partObj){
+      getSupportedValueTypes: function(fieldName, operator){
+        var valueTypes = [];//["value","field","unique"]
+
+        var operatorInfo = relationship[operator];
+        if(operatorInfo){
+          // var version = parseFloat(this.layerDefinition.currentVersion);
+          if(operatorInfo.value){
+            valueTypes.push("value");
+          }
+          if(operatorInfo.field){
+            var fieldNames = this._getSameShortTypeFieldNames(fieldName);
+            if(fieldNames.length > 0){
+              valueTypes.push("field");
+            }
+          }
+          if(operatorInfo.unique){
+            if(this.url){
+              if(!this._isStreamServer(this.url)){
+                // if(version >= 10.1){
+                valueTypes.push("unique");
+                // }
+              }
+            }
+          }
+          if(operatorInfo.multiple){
+            if(this.url){
+              if(!this._isStreamServer(this.url)){
+                // if(version >= 10.1){  //version, for query params
+                valueTypes.push("multiple");
+                // }
+              }
+            }
+          }
+          // if(operatorInfo.values){   //hide values in UI
+          //   valueTypes.push("values");
+          // }
+          if(operatorInfo.uniquePredefined){
+            if(this.url){
+              if(!this._isStreamServer(this.url)){
+                // if(version >= 10.1){
+                valueTypes.push("uniquePredefined");
+                // }
+              }
+            }
+          }
+          if(operatorInfo.multiplePredefined){
+            if(this.url){
+              if(!this._isStreamServer(this.url)){
+                // if(version >= 10.1){
+                valueTypes.push("multiplePredefined");
+                // }
+              }
+            }
+          }
+        }
+
+        return valueTypes;
+      },
+
+      _isStreamServer: function(url){
+        url = url || "";
+        url = url.replace(/\/*$/g, '');
+        var reg = /\/StreamServer$/gi;
+        return reg.test(url);
+      },
+
+      _getSameShortTypeFieldNames: function(fieldName){
+        var fieldNames = [];
+        var info = this._getFieldInfo(this.layerDefinition, fieldName);
+        var shortType = clazz.getShortTypeByEsriType(info.type);
+        array.forEach(this.layerDefinition.fields, lang.hitch(this, function(fieldInfo){
+          if(fieldInfo.name !== fieldName){
+            if(clazz.getShortTypeByEsriType(fieldInfo.type) === shortType){
+              fieldNames.push(fieldInfo.name);
+            }
+          }
+        }));
+        return fieldNames;
+      },
+
+      _getSameShortTypeFieldNameLabels: function(fieldName){
+        var fieldNameLabels = [];
+        var info = this._getFieldInfo(this.layerDefinition, fieldName);
+        var shortType = clazz.getShortTypeByEsriType(info.type);
+        array.forEach(this.layerDefinition.fields, lang.hitch(this, function(fieldInfo){
+          if(fieldInfo.name !== fieldName){
+            if(clazz.getShortTypeByEsriType(fieldInfo.type) === shortType){
+              fieldNameLabels.push({value: fieldInfo.name, label: fieldInfo.alias});
+            }
+          }
+        }));
+        return fieldNameLabels;
+      },
+
+      getValueProvider: function(partObj, runtime){
         /*{
             "fieldObj": {
               "name": "OBJECTID",
@@ -206,19 +655,36 @@ define([
             "caseSensitive": false,
             "expr": "OBJECTID = 123"
           }*/
+        //partObj.valueObj.type must be set
+        //partObj.valueObj.value, partObj.valueObj.value1 and partObj.valueObj.value2 are optional
         var valueProvider = null;
         var operator = partObj.operator;
-        var operatorInfo = relationship[operator];
+        var operatorInfo = lang.clone(relationship[operator]);
+
         if(operatorInfo){
           var valueType = partObj.valueObj.type;
           var fieldName = partObj.fieldObj.name;
           var fieldInfo = this._getFieldInfo(this.layerDefinition, fieldName);
-          var codedValues = this._getCodedValues(fieldInfo);
-          var a = operatorInfo[valueType];
-          var valueProviderType = a.normal;
-          if(codedValues && a.codedValue){
-            valueProviderType = a.codedValue;
+          var valueTypeInfo = operatorInfo[valueType];
+          var valueProviderType = valueTypeInfo.normalProviderType;
+          var staticValues = null;
+
+          //for codedValues
+          var codedValues = jimuUtils.getCodedValueListForCodedValueOrSubTypes(this.layerDefinition, fieldName);
+
+          if(valueType === 'field'){//display with alias and query with name.#14620
+            var otherFieldNameLabels = this._getSameShortTypeFieldNameLabels(fieldName);
+            if(otherFieldNameLabels.length > 0){
+              staticValues = otherFieldNameLabels;
+            }
+          }else{
+            if(codedValues && codedValues.length > 0 && valueTypeInfo.codedValueProviderType){
+              valueProviderType = valueTypeInfo.codedValueProviderType;
+            }
           }
+
+          var filterCodedValueIfPossible = !!valueTypeInfo.filterCodedValueIfPossible;
+
           var args = {
             nls: this.nls,
             url: this.url,
@@ -226,28 +692,65 @@ define([
             partObj: partObj,
             fieldInfo: fieldInfo,
             codedValues: codedValues,
-            layerInfo: this.layerInfo
+            staticValues: staticValues,
+            layerInfo: this.layerInfo,
+            popupInfo: this.popupInfo,
+            operatorInfo: operatorInfo,
+            filterCodedValueIfPossible: filterCodedValueIfPossible,
+            runtime: runtime
           };
-          if(valueProviderType === SIMPLE_VALUE_PROVIDER){
+          if(valueProviderType === BLANK_VALUE_PROVIDER){
+            valueProvider = new BlankValueProvider(args);
+          } else if(valueProviderType === SIMPLE_VALUE_PROVIDER){
             valueProvider = new SimpleValueProvider(args);
           }else if(valueProviderType === TWO_NUMBERS_VALUE_PROVIDER){
             valueProvider = new TwoNumbersValueProvider(args);
           }else if(valueProviderType === TWO_DATES_VALUE_PROVIDER){
             valueProvider = new TwoDatesValueProvider(args);
           }else if(valueProviderType === LIST_VALUE_PROVIDER){
-            if(operator === "stringOperatorIs" ||
-               operator === "stringOperatorIsNot" ||
-               operator === "numberOperatorIs" ||
-               operator === "numberOperatorIsNot"){
-              args.showNullValues = true;
+            // if(operator === "stringOperatorIs" ||
+            //    operator === "stringOperatorIsNot" ||
+            //    operator === "numberOperatorIs" ||
+            //    operator === "numberOperatorIsNot"){
+            //   args.showNullValues = true;
+            // }else{
+            //   args.showNullValues = false;
+            // }
+            args.showNullValues = false;
+            if(valueType === 'value' || valueType === 'field'){
+              // || args.fieldInfo.type === 'esriFieldTypeDate'){
+              valueProvider = new ListValueProvider(args);//origin unique provider
             }else{
-              args.showNullValues = false;
+              args.providerType = valueProviderType;
+              args.selectUI = 'dropdown';
+              // if(valueType === 'field'){
+              //   args.isNumberField = false; //field's name is a string
+              // }
+              valueProvider = new AdvancedListValueProvider(args);
             }
-            valueProvider = new ListValueProvider(args);
+
+          }else if(valueProviderType === NUMBER_LIST_VALUE_PROVIDER){
+            valueProvider = new NumberListValueProvider(args);
+          }else if(valueProviderType === DATE_IS_IN_VALUE_PROVIDER){
+            valueProvider = new DateIsInValueProvider(args);
           }
-        }else{
-          console.error("Invalid operator: " + operator);
+          else if(valueProviderType === ADVANCED_LIST_VALUE_PROVIDER){ //mutiple---setting&runtime
+            args.providerType = valueProviderType;
+            args.selectUI = 'dropdown';
+            valueProvider = new AdvancedListValueProvider(args);
+          }
+          else if(valueProviderType === UNIQUE_PREDEFINED_VALUE_PROVIDER ||
+            valueProviderType === MULTIPLE_PREDEFINED_VALUE_PROVIDER){
+            args.providerType = valueProviderType;
+            args.selectUI = args.partObj.valueObj ? args.partObj.valueObj.selectUI : null;
+            if(runtime){
+              valueProvider = new AdvancedListValueProvider(args);
+            }else{
+              valueProvider = new PredefinedValueProvider(args);
+            }
+          }
         }
+
         return valueProvider;
       },
 
@@ -260,18 +763,94 @@ define([
           }
         }
         return null;
-      },
-
-      _getCodedValues:function(fieldInfo){
-        var codedValues = null;
-        var domain = fieldInfo.domain;
-        if(domain && domain.type === 'codedValue'){
-          if(domain.codedValues && domain.codedValues.length > 0){
-            codedValues = domain.codedValues;
-          }
-        }
-        return codedValues;
       }
-
     });
+
+    clazz.getOperatorInfo = function(operator) {
+      var operatorInfo = lang.clone(relationship[operator]);
+      return operatorInfo;
+    };
+
+    //only for date field & value type & special operators.
+    clazz.isSupportVirtualDates = function(operator){
+      var operatorInfo = relationship[operator];
+      if(operatorInfo && operatorInfo.value && operatorInfo.value.customVirtualDates){
+        var num = (operator === 'dateOperatorIsBetween' || operator === 'dateOperatorIsNotBetween') ? 2 : 1;
+        return {status: true, num: num};
+      }
+      return {status: false};
+    };
+
+    clazz.getOperatorsByShortType = function(shortType, isHosted){
+      var operators = [];
+      if(shortType === 'string'){
+        operators = [
+          "stringOperatorIs",
+          "stringOperatorIsNot",
+          "stringOperatorStartsWith",
+          "stringOperatorEndsWith",
+          "stringOperatorContains",
+          "stringOperatorDoesNotContain",
+          "stringOperatorIsAnyOf",
+          "stringOperatorIsNoneOf",
+          "stringOperatorIsBlank",
+          "stringOperatorIsNotBlank"
+        ];
+      }else if(shortType === 'number'){
+        operators = [
+          "numberOperatorIs",
+          "numberOperatorIsNot",
+          "numberOperatorIsAtLeast",
+          "numberOperatorIsAtMost",
+          "numberOperatorIsLessThan",
+          "numberOperatorIsGreaterThan",
+          "numberOperatorIsAnyOf",
+          "numberOperatorIsNoneOf",
+          "numberOperatorIsBetween",
+          "numberOperatorIsNotBetween",
+          "numberOperatorIsBlank",
+          "numberOperatorIsNotBlank"
+        ];
+      }else if(shortType === 'date'){
+        operators = [
+          "dateOperatorIsOn",
+          "dateOperatorIsNotOn",
+          "dateOperatorIsIn",
+          "dateOperatorIsNotIn",
+          "dateOperatorIsBefore",
+          "dateOperatorIsAfter",
+          "dateOperatorIsOnOrBefore",
+          "dateOperatorIsOnOrAfter",
+          "dateOperatorIsBetween",
+          "dateOperatorIsNotBetween",
+          "dateOperatorIsBlank",
+          "dateOperatorIsNotBlank"
+        ];
+        if(isHosted){
+          operators.splice(8,0,"dateOperatorInTheLast","dateOperatorNotInTheLast");
+        }
+      }
+      return operators;
+    };
+
+    clazz.getShortTypeByEsriType = function(esriFieldType){
+      var shortType = null;
+      if(esriFieldType === 'esriFieldTypeString'){
+        shortType = 'string';
+      }else if(esriFieldType === 'esriFieldTypeDate'){
+        shortType = 'date';
+      }else{
+        var numberTypes = ['esriFieldTypeOID',
+                           'esriFieldTypeSmallInteger',
+                           'esriFieldTypeInteger',
+                           'esriFieldTypeSingle',
+                           'esriFieldTypeDouble'];
+        if(numberTypes.indexOf(esriFieldType) >= 0){
+          shortType = 'number';
+        }
+      }
+      return shortType;
+    };
+
+    return clazz;
   });

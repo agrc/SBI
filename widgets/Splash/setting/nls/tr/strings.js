@@ -10,9 +10,9 @@ define({
   "confirmOption": "Uygulama başlatılırken her zaman için bu açılış ekranını göster",
   "backgroundColor": "Arkaplan Rengi",
   "content": "İçerik",
-  "contentDescription": "Başlangıç ekranında görüntülenen içeriği tanımlama",
+  "contentDescription": "Başlangıç ekranında görüntülenen içeriği tanımlayın.",
   "appearance": "Görünüm",
-  "appearanceDescription": "Başlangıç ekranının görüntüsünü ayarlama",
+  "appearanceDescription": "Başlangıç ekranının görüntüsünü ayarlayın.",
   "size": "Boyut",
   "width": "Genişlik",
   "height": "Yükseklik",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Görüntü dolgusu",
   "chooseFile": "Dosya seç",
   "noFileChosen": "Seçili dosya yok",
-  "transparency": "Şeffaflık",
   "sizeFill": "Dolgu",
   "sizeFit": "Uydur",
   "sizeStretch": "Doldurmak için uzat",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Düğme rengi",
   "buttonText": "Düğme metni",
   "buttonTextColor": "Düğme metni rengi",
+  "contentAlign": "İçerik hizalama",
+  "alignTop": "En Üst",
+  "alignMiddle": "Orta",
   "maskColor": "Maske rengi",
   "options": "Seçenekler",
-  "optionsDescription": "Başlangıç ekranı davranışını ayarlama"
+  "optionsDescription": "Başlangıç ekranı davranışını ayarlayın."
 });

@@ -10,9 +10,9 @@ define({
   "confirmOption": "Vis altid denne velkomstskærm, hver gang app'en startes",
   "backgroundColor": "Baggrundsfarve",
   "content": "Indhold",
-  "contentDescription": "Definér det indhold, der skal vises på din velkomstskærmen",
+  "contentDescription": "Definér det indhold, der skal vises på velkomstskærmen.",
   "appearance": "Udseende",
-  "appearanceDescription": "Definér velkomstskærmens udseende",
+  "appearanceDescription": "Definér velkomstskærmens udseende.",
   "size": "Størrelse",
   "width": "Bredde",
   "height": "Højde",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Billedfyld",
   "chooseFile": "Vælg fil",
   "noFileChosen": "Der er ikke valgt nogen fil",
-  "transparency": "Transparency",
   "sizeFill": "Fyld",
   "sizeFit": "Tilpas",
   "sizeStretch": "Stræk og udfyld",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Knapfarve",
   "buttonText": "Knaptekst",
   "buttonTextColor": "Knaptekstfarve",
+  "contentAlign": "Indholdsjustering",
+  "alignTop": "Top",
+  "alignMiddle": "Mellem",
   "maskColor": "Maskefarve",
   "options": "Indstillinger",
-  "optionsDescription": "Definér velkomstskærmens funktionsmåde"
+  "optionsDescription": "Definér velkomstskærmens funktionsmåde."
 });

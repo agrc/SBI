@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,40 +15,32 @@
 ///////////////////////////////////////////////////////////////////////////
 
 define([
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/html',
-    'dojo/_base/array',
-    'dojo/on',
-    'dojo/aspect',
-    'jimu/BaseWidget',
-    'esri/dijit/OverviewMap',
-    'jimu/utils',
-    "dojo/dom-style"
-  ],
-  function(
-    declare,
-    lang,
-    html,
-    array,
-    on,
-    aspect,
-    BaseWidget,
-    OverviewMap,
-    utils,
-    domStyle) {
+  'dojo/_base/declare',
+  'dojo/_base/lang',
+  'dojo/_base/html',
+  'dojo/_base/array',
+  'dojo/on',
+  'dojo/Deferred',
+  'dojo/aspect',
+  'jimu/BaseWidget',
+  'esri/dijit/OverviewMap',
+  'jimu/utils',
+  './utils',
+  "dojo/dom-style",
+  "./a11y/Widget"
+],
+  function (declare, lang, html, array, on, Deferred, aspect,
+    BaseWidget, OverviewMap, jimuUtils, utils, domStyle, a11y) {
     var clazz = declare([BaseWidget], {
-
       baseClass: 'jimu-widget-overview',
       overviewMapDijit: null,
       _showDijit: false,
       _handles: null,
 
-
-      startup: function() {
+      startup: function () {
         this._handles = [];
         this.inherited(arguments);
-        this.createOverviewMap();
+        this.createOverviewMap();//for "Initially expand the widget"
 
         if (this.map) {
           this.own(on(this.map, 'layer-add', lang.hitch(this, this._onMainMapBasemapChange)));
@@ -56,7 +48,7 @@ define([
         }
       },
 
-      setPosition: function(position) {
+      setPosition: function (position) {
         this.position = position;
         html.place(this.domNode, this.map.id);
         this._processAttachTo(this.config, position);
@@ -65,7 +57,7 @@ define([
         }
       },
 
-      _processAttachTo: function(config, position) {
+      _processAttachTo: function (config, position) {
         if (typeof config.overviewMap === "undefined") {
           config.overviewMap = {};
         }
@@ -83,7 +75,7 @@ define([
         }
       },
 
-      _updateDomPosition: function(attachTo) {
+      _updateDomPosition: function (attachTo) {
         if (this.overviewMapDijit) {
           var initPos = {
             left: 'auto',
@@ -95,14 +87,40 @@ define([
           };
           var _position = this._getOverviewPositionByAttach(attachTo);
           lang.mixin(initPos, _position);
-          var style = utils.getPositionStyle(initPos);
+          var style = jimuUtils.getPositionStyle(initPos);
           style.position = 'absolute';
           domStyle.set(this.domNode, style);
           domStyle.set(this.overviewMapDijit.domNode, style);
+
+          //change arrow style
+          if (this.overviewMapDijit.domNode) {
+            html.removeClass(this.overviewMapDijit.domNode, ["ovwTL", "ovwTR", "ovwBL", "ovwBR"]);
+            var arrowStyle = "";
+            switch (attachTo) {
+              case "top-left": {
+                arrowStyle = "ovwTL";
+                break;
+              } case "top-right": {
+                arrowStyle = "ovwTR";
+                break;
+              } case "bottom-left": {
+                arrowStyle = "ovwBL";
+                break;
+              } case "bottom-right": {
+                arrowStyle = "ovwBR";
+                break;
+              } default: {
+                arrowStyle = "ovwTL";
+                break;
+              }
+            }
+            html.addClass(this.overviewMapDijit.domNode, arrowStyle);
+            html.addClass(this.domNode, arrowStyle);//for a11y
+          }
         }
       },
 
-      createOverviewMap: function(visible) {
+      createOverviewMap: function (visible) {
         var json = lang.clone(this.config.overviewMap);
         json.map = this.map;
         if (visible !== undefined) {
@@ -117,30 +135,44 @@ define([
         json.maximizeButton = _hasMaximizeButton ? json.maximizeButton : true;
         json.width = 200;
         json.height = 200;
-        json.expandFactor = 2;
+        json.expandFactor = 2;//50
+        //json.opacity = 0.5;
         json.attachTo = this.config.overviewMap.attachTo;
 
-        this.overviewMapDijit = new OverviewMap(json);
-        this._handles.push(aspect.after(
-          this.overviewMapDijit,
-          'show',
-          lang.hitch(this, '_afterOverviewShow')
-        ));
-        this._handles.push(aspect.after(
-          this.overviewMapDijit,
-          'hide',
-          lang.hitch(this, '_afterOverviewHide')
-        ));
-        this.overviewMapDijit.startup();
+        this._getBaseLayerMap().then(lang.hitch(this, function (res) {
+          if (res && res.layer && "string" !== typeof res.layer) {
+            json.baseLayer = res.layer;
+          } else if (json.baseLayer) {
+            delete json.baseLayer;//reset to raw basemap
+          }
 
-        this._updateDomPosition(json.attachTo);
-        this.domNode.appendChild(this.overviewMapDijit.domNode);
-        if (_isShow) {
-          this.overviewMapDijit.show();
-        }
+          this.overviewMapDijit = new OverviewMap(json);
+          this._handles.push(aspect.after(
+            this.overviewMapDijit,
+            'show',
+            lang.hitch(this, '_afterOverviewShow')
+          ));
+          this._handles.push(aspect.after(
+            this.overviewMapDijit,
+            'hide',
+            lang.hitch(this, '_afterOverviewHide')
+          ));
+          this.overviewMapDijit.startup();
+
+          this._updateDomPosition(json.attachTo);
+          this.domNode.appendChild(this.overviewMapDijit.domNode);
+
+          this.a11y_init();
+          this.a11y_initEvents();
+          this.a11y_forLaunchpadThemeStyle();
+
+          if (_isShow) {
+            this.overviewMapDijit.show();
+          }
+        }));
       },
 
-      _getOverviewPositionByAttach: function(attachTo) {
+      _getOverviewPositionByAttach: function (attachTo) {
         var _position = {};
         if (attachTo === 'top-left') {
           _position.left = 0;
@@ -169,7 +201,7 @@ define([
         return _position;
       },
 
-      _onMainMapBasemapChange: function(evt) {
+      _onMainMapBasemapChange: function (evt) {
         if (!(evt.layer && evt.layer._basemapGalleryLayerType)) {
           return;
         }
@@ -178,7 +210,7 @@ define([
         this.createOverviewMap(this._showDijit);
       },
 
-      onPositionChange: function(position) {
+      onPositionChange: function (position) {
         this.position = position;
         if (this.config.overviewMap.attachTo) {
           return;
@@ -188,8 +220,8 @@ define([
         this.createOverviewMap(this._showDijit);
       },
 
-      _destroyOverviewMap: function() {
-        array.forEach(this._handles, function(handle) {
+      _destroyOverviewMap: function () {
+        array.forEach(this._handles, function (handle) {
           if (handle && typeof handle.remove === 'function') {
             handle.remove();
           }
@@ -206,7 +238,7 @@ define([
       //  this.createOverviewMap(this._showDijit);
       //},
 
-      onReceiveData: function(name) {
+      onReceiveData: function (name) {
         if (name !== "BasemapGallery") {
           return;
         }
@@ -215,16 +247,16 @@ define([
         this.createOverviewMap(this._showDijit);
       },
 
-      onOpen: function() {
+      onOpen: function () {
         this._destroyOverviewMap();
         this.createOverviewMap(this._showDijit);
       },
 
-      onClose: function() {
+      onClose: function () {
         this._destroyOverviewMap();
       },
 
-      _afterOverviewHide: function() {
+      _afterOverviewHide: function () {
         this._showDijit = false;
         domStyle.set(this.domNode, {
           width: "auto",
@@ -232,14 +264,28 @@ define([
         });
       },
 
-      _afterOverviewShow: function() {
+      _afterOverviewShow: function () {
         this._showDijit = true;
         domStyle.set(this.domNode, {
           width: this.overviewMapDijit.width + 'px',
           height: this.overviewMapDijit.height + 'px'
         });
+      },
+
+      _getBaseLayerMap: function () {
+        var def = new Deferred();
+        if (this.config.overviewMap && this.config.overviewMap.baseLayer) {
+          utils.createBaseLayer(this.config.overviewMap.baseLayer, this.map, this).then(function (layer) {
+            def.resolve(layer);
+          });
+        } else {
+          def.resolve(null);
+        }
+
+        return def;
       }
     });
 
+    clazz.extend(a11y);//for a11y
     return clazz;
   });

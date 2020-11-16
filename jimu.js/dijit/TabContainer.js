@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,13 +19,14 @@ define(['dojo/_base/declare',
   'dojo/_base/array',
   'dojo/_base/html',
   'dojo/on',
+  'dojo/keys',
   'dojo/Evented',
   'dijit/_WidgetBase',
   'dijit/_TemplatedMixin',
   './ViewStack',
   '../utils'
 ],
-function(declare, lang, array, html, on, Evented, _WidgetBase, _TemplatedMixin,
+function(declare, lang, array, html, on, keys, Evented, _WidgetBase, _TemplatedMixin,
   ViewStack, utils){
   return declare([_WidgetBase, _TemplatedMixin, Evented], {
     // summary:
@@ -59,6 +60,13 @@ function(declare, lang, array, html, on, Evented, _WidgetBase, _TemplatedMixin,
       }
       this.controlNodes = [];
       this.viewStack = new ViewStack(null, this.containerNode);
+      this.own(on(this.containerNode, 'keydown', lang.hitch(this, function(evt){
+        if(evt.keyCode === keys.ESCAPE){
+          evt.stopPropagation();
+          this._currentCtrlNode.focus();
+        }
+      })));
+
       var width = 1 / this.tabs.length * 100;
       if(this.isNested){
         html.addClass(this.domNode, 'nested');
@@ -66,6 +74,26 @@ function(declare, lang, array, html, on, Evented, _WidgetBase, _TemplatedMixin,
       array.forEach(this.tabs, function(tabConfig){
         this._createTab(tabConfig, width);
       }, this);
+
+      this.own(on(this.controlNode, 'keydown', lang.hitch(this, function(evt){
+        var currentMenuItem = evt.target;
+        var nextItem;
+        if(evt.keyCode === keys.RIGHT_ARROW){
+          nextItem = currentMenuItem.nextElementSibling ?
+            currentMenuItem.nextElementSibling : this.controlNodes[0];
+        }else if(evt.keyCode === keys.LEFT_ARROW){
+          nextItem = currentMenuItem.previousElementSibling ?
+            currentMenuItem.previousElementSibling : this.controlNodes[this.controlNodes.length - 1];
+        }else if(evt.keyCode === keys.HOME){
+          nextItem = this.controlNodes[0];
+        }else if(evt.keyCode === keys.END){
+          nextItem = this.controlNodes[this.controlNodes.length - 1];
+        }
+        if(nextItem){
+          currentMenuItem = nextItem;
+          nextItem.focus();
+        }
+      })));
     },
 
     startup: function() {
@@ -81,7 +109,7 @@ function(declare, lang, array, html, on, Evented, _WidgetBase, _TemplatedMixin,
     _createTab: function(tabConfig, width){
       var ctrlNode;
       ctrlNode = html.create('div', {
-        innerHTML: tabConfig.title,
+        innerHTML: utils.sanitizeHTML(tabConfig.title),
         'class': 'tab jimu-vcenter-text',
         style: {
           width: this.isNested? 'auto': width + '%'
@@ -95,13 +123,26 @@ function(declare, lang, array, html, on, Evented, _WidgetBase, _TemplatedMixin,
       }
       tabConfig.content.label = tabConfig.title;
       this.viewStack.addView(tabConfig.content);
-      this.own(on(ctrlNode, 'click', lang.hitch(this, this.onSelect, tabConfig.title)));
+
+      this.own(on(ctrlNode, 'click', lang.hitch(this, function(evt){
+        this.onSelect(tabConfig.title, evt);
+      })));
+      this.own(on(ctrlNode, 'keydown', lang.hitch(this, function(evt){
+        if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+          this.onSelect(tabConfig.title, evt);
+        }
+      })));
+
       ctrlNode.label = tabConfig.title;
       this.controlNodes.push(ctrlNode);
     },
 
-    onSelect: function(title){
-      this.selectTab(title);
+    onSelect: function(title, evt){
+      var ctrNode = evt.target;
+      if(html.hasClass(ctrNode, 'jimu-state-selected')){
+        return;
+      }
+      this.selectTab(title, evt);
     },
 
     selectTab: function(title){
@@ -113,10 +154,13 @@ function(declare, lang, array, html, on, Evented, _WidgetBase, _TemplatedMixin,
     _selectControl: function(title){
       array.forEach(this.controlNodes, function(ctrlNode) {
         html.removeClass(ctrlNode, 'jimu-state-selected');
+        html.setAttr(ctrlNode, 'tabindex', '-1');
         if(ctrlNode.label === title){
+          this._currentCtrlNode = ctrlNode;
           html.addClass(ctrlNode, 'jimu-state-selected');
+          html.setAttr(ctrlNode, 'tabindex', '0');
         }
-      });
+      }, this);
     }
 
   });

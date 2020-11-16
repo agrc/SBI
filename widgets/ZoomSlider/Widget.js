@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,9 +19,12 @@ define([
     'dojo/_base/lang',
     'jimu/BaseWidget',
     'dojo/_base/html',
+    'jimu/utils',
+    'dijit/Tooltip',
+    'dojo/keys',
     'dojo/on'
   ],
-  function(declare, lang, BaseWidget, html, on) {
+  function(declare, lang, BaseWidget, html, jimuUtils, Tooltip, keys, on) {
     var clazz = declare([BaseWidget], {
       name: 'ZoomSlider',
 
@@ -36,12 +39,17 @@ define([
       _cornerLeading: 'jimu-corner-leading',
       _cornerTrailing: 'jimu-corner-trailing',
 
+      moveTopOnActive: false,
+
+      postMixInProperties:function(){
+        this.jimuCommonNls = window.jimuNls.common;
+      },
+
       postCreate: function(){
         this.inherited(arguments);
+
         this.own(on(this.map, 'zoom-end', lang.hitch(this, this._zoomHandler)));
         this._zoomHandler();
-        this.btnZoomIn.title = window.jimuNls.common.zoomIn;
-        this.btnZoomOut.title = window.jimuNls.common.zoomOut;
       },
 
       setPosition: function(position){
@@ -68,6 +76,9 @@ define([
         if(disabledButton){
           html.addClass(disabledButton, this._disabledClass);
         }
+        //add tooltip for zoom btns
+        jimuUtils.addTooltipByDomNode(Tooltip, this.btnZoomIn, this.jimuCommonNls.zoomIn);
+        jimuUtils.addTooltipByDomNode(Tooltip, this.btnZoomOut, this.jimuCommonNls.zoomOut);
       },
 
       _onBtnZoomInClicked: function(){
@@ -76,6 +87,18 @@ define([
 
       _onBtnZoomOutClicked: function(){
         this.map._extentUtil({ numLevels: -1});
+      },
+
+      _onBtnZoomInKeyDown: function(evt){
+        if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+          this._onBtnZoomInClicked();
+        }
+      },
+
+      _onBtnZoomOutKeyDown: function(evt){
+        if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+          this._onBtnZoomOutClicked();
+        }
       },
 
       _setOrientation: function(isVertical){

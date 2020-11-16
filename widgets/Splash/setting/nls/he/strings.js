@@ -10,9 +10,9 @@ define({
   "confirmOption": "הצג את מסך הפתיחה בכל פתיחה של האפליקציה",
   "backgroundColor": "צבע רקע",
   "content": "תוכן",
-  "contentDescription": "הגדר את התוכן שמוצג במסך הפתיחה",
+  "contentDescription": "הגדר את התוכן שמוצג במסך הפתיחה.",
   "appearance": "הופעה",
-  "appearanceDescription": "הגדר את ההופעה של מסך הפתיחה",
+  "appearanceDescription": "הגדר את ההופעה של מסך הפתיחה.",
   "size": "גודל",
   "width": "רוחב",
   "height": "גובה",
@@ -22,7 +22,6 @@ define({
   "imageFill": "מילוי תמונה",
   "chooseFile": "בחר קובץ",
   "noFileChosen": "לא נבחר קובץ",
-  "transparency": "שקיפות",
   "sizeFill": "מילוי",
   "sizeFit": "מותאם",
   "sizeStretch": "מתח עד למילוי",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "צבע לחצן",
   "buttonText": "טקסט לחצן",
   "buttonTextColor": "צבע טקסט לחצן",
+  "contentAlign": "יישור תוכן",
+  "alignTop": "עליון",
+  "alignMiddle": "אמצע",
   "maskColor": "צבע מיסוך",
   "options": "אפשרויות",
-  "optionsDescription": "הגדר את ההתנהגות של מסך הפתיחה"
+  "optionsDescription": "הגדר את ההתנהגות של מסך הפתיחה."
 });

@@ -1,6 +1,8 @@
 {
   "scalebar": {
     "scalebarStyle": "",
-    "scalebarUnit": ""
+    "scalebarUnit": "",
+    "decimalPlaces": 0,
+    "addSeparator": false
   }
 }

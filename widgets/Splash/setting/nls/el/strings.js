@@ -10,9 +10,9 @@ define({
   "confirmOption": "Να εμφανίζεται πάντα αυτή η οθόνη εκκίνησης κάθε φορά που ξεκινά η εφαρμογή",
   "backgroundColor": "Χρώμα φόντου",
   "content": "Περιεχόμενο",
-  "contentDescription": "Καθορισμός του περιεχομένου που εμφανίζεται στην οθόνη υποδοχής",
+  "contentDescription": "Καθορίστε το περιεχόμενο που εμφανίζεται στην οθόνη υποδοχής.",
   "appearance": "Εμφάνιση",
-  "appearanceDescription": "Ορισμός της εμφάνισης της οθόνης υποδοχής",
+  "appearanceDescription": "Ορίστε την εμφάνισης της οθόνης υποδοχής.",
   "size": "Μέγεθος",
   "width": "Πλάτος",
   "height": "Ύψος",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Γέμισμα εικόνας",
   "chooseFile": "Επιλογή αρχείου",
   "noFileChosen": "Δεν έχει επιλεγεί αρχείο",
-  "transparency": "Διαφάνεια",
   "sizeFill": "Γέμισμα",
   "sizeFit": "Προσαρμογή",
   "sizeStretch": "Παραμόρφωση για γέμισμα",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Χρώμα κουμπιού",
   "buttonText": "Κείμενο κουμπιού",
   "buttonTextColor": "Χρώμα κειμένου κουμπιού",
+  "contentAlign": "Ευθυγράμμιση περιεχομένου",
+  "alignTop": "Επάνω",
+  "alignMiddle": "Μεσαίο",
   "maskColor": "Χρώμα μάσκας",
   "options": "Επιλογές",
-  "optionsDescription": "Ορισμός της συμπεριφοράς της οθόνης υποδοχής"
+  "optionsDescription": "Ορίστε τη συμπεριφορά της οθόνης υποδοχής."
 });

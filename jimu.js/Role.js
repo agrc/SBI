@@ -1,3 +1,18 @@
+///////////////////////////////////////////////////////////////////////////
+// Copyright © Esri. All Rights Reserved.
+//
+// Licensed under the Apache License Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+///////////////////////////////////////////////////////////////////////////
 /**
  * Copy from portal arcgisonline/sharing/dijit/Role.js
  */
@@ -83,6 +98,9 @@ define([
             geoenrichment: false,     // "premium:user:geoenrichment"
             demographics: false,      // "premium:user:demographics"
             elevation: false          // "premium:user:elevation"
+          },
+          publisher: {
+            createNotebooks: false    // "premium:publisher:createNotebooks"
           }
         },
         marketplace: {                // "marketplace:*"
@@ -225,14 +243,17 @@ define([
         case "premium:user:geoenrichment":
           this.privilegeObj.premium.user.geoenrichment = allow;
           break;
-//        case "premium:user:geotrigger":
-//          this.privilegeObj.premium.user.geotrigger = allow;
-//          break;
+        //  case "premium:user:geotrigger":
+        //    this.privilegeObj.premium.user.geotrigger = allow;
+        //    break;
         case "premium:user:demographics":
           this.privilegeObj.premium.user.demographics = allow;
           break;
         case "premium:user:elevation":
           this.privilegeObj.premium.user.elevation = allow;
+          break;
+        case "premium:publisher:createNotebooks":
+          this.privilegeObj.premium.publisher.createNotebooks = allow;
           break;
         case "marketplace:admin:purchase":
           this.privilegeObj.marketplace.admin.purchase = allow;
@@ -288,6 +309,7 @@ define([
       // this.privilegeObj.premium.user.geotrigger = allow;
       this.privilegeObj.premium.user.demographics = allow;
       this.privilegeObj.premium.user.elevation = allow;
+      this.privilegeObj.premium.publisher.createNotebooks = allow;
       this.privilegeObj.marketplace.admin.purchase = allow;
       this.privilegeObj.marketplace.admin.manage = allow;
       this.privilegeObj.marketplace.admin.startTrial = allow;
@@ -424,6 +446,9 @@ define([
       }
       if(this.privilegeObj.premium.user.elevation === true) {
         privs.push("premium:user:elevation");
+      }
+      if(this.privilegeObj.premium.publisher.createNotebooks === true) {
+        privs.push("premium:publisher:createNotebooks");
       }
       if(this.privilegeObj.marketplace.admin.purchase === true) {
         privs.push("marketplace:admin:purchase");
@@ -828,8 +853,16 @@ define([
      * Checks whether the privilege "premium:user:elevation" is granted.
      * @returns {null|boolean}
      */
-    canUseElevation: function() {
-      return this.privilegeObj && this.privilegeObj.premium.user.elevation;
+    // canUseElevation: function() {
+    //   return this.privilegeObj && this.privilegeObj.premium.user.elevation;
+    // },
+
+    /**
+     * Checks whether the privilege "premium:publisher:createNotebooks" is granted.
+     * @returns {null|boolean}
+     */
+    canCreateNotebooks: function() {
+      return this.privilegeObj && this.privilegeObj.premium.publisher.createNotebooks;
     },
 
     /**

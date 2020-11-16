@@ -3,7 +3,7 @@
  */
 
 Date.now = function() {
-        return +new Date();
+	return +new Date();
 };
 
 /* End of file now.js */

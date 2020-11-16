@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright ? 2014 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -76,9 +76,11 @@ var
 
   allCookies,
 
+  verboseLog = true,
+
   //This version number will be appended to URL to avoid cache.
   //The reason we do not use wabVersion is to avoid force user to change wabVersion when they are customizing app.
-  deployVersion = '2.2';
+  deployVersion = '2.18';
 
 // console.time('before map');
 
@@ -88,35 +90,48 @@ var
 
 /////////////////////////////////////
 
+
+/////Build scripts will uncomment this line to disable verboseLog.
+
+//verboseLog = false;
+
+/////////////////////////////////////
+
 (function(global){
   //init API URL
   var queryObject = getQueryObject();
-  var apiVersion = '3.18';
+  var apiVersion = '3.34';
 
   ////////uncomment the following line when downloading the app
 
-  //apiUrl = '//js.arcgis.com/3.18';
+  apiUrl = 'https://js.arcgis.com/3.34';
 
   //////////////////////////////////////////////////////////////
   allCookies = getAllCookies();
+
+  if (queryObject.apiurl) {
+    if(!checkApiUrl(queryObject.apiurl)){
+      console.error('?apiurl must point to an ULR that is in the app or in esri.com/arcgis.com domain.');
+      return;
+    }
+    apiUrl = queryObject.apiurl;
+  }
   window.appInfo = {isRunInPortal: !isXT};
   if (!apiUrl) {
-    if (queryObject.apiurl) {
-      apiUrl = queryObject.apiurl;
-    } else if (isXT) {
-      apiUrl = '//js.arcgis.com/' + apiVersion;
+    if (isXT) {
+      apiUrl = 'https://js.arcgis.com/' + apiVersion;
     } else {
       var portalUrl = getPortalUrlFromLocation();
       if (portalUrl.indexOf('arcgis.com') > -1) {
-        // if(portalUrl.indexOf('devext.arcgis.com') > -1){
-        //   apiUrl = '//jsdev.arcgis.com/' + apiVersion;
-        // }else if(portalUrl.indexOf('qaext.arcgis.com') > -1){
-        //   apiUrl = '//jsqa.arcgis.com/' + apiVersion;
-        // }else{
-        //   apiUrl = '//js.arcgis.com/' + apiVersion;
-        // }
+        if(portalUrl.indexOf('devext.arcgis.com') > -1){
+          apiUrl = '//jsdev.arcgis.com/' + apiVersion;
+        }else if(portalUrl.indexOf('qa.arcgis.com') > -1){
+          apiUrl = '//jsqa.arcgis.com/' + apiVersion;
+        }else{
+          apiUrl = '//js.arcgis.com/' + apiVersion;
+        }
 
-        apiUrl = '//js.arcgis.com/' + apiVersion;
+        // apiUrl = 'https://js.arcgis.com/' + apiVersion;
       } else {
         apiUrl = portalUrl + 'jsapi/jsapi/';
       }
@@ -144,6 +159,14 @@ var
     return cookies;
   }
 
+  function checkApiUrl(url){
+    if(/^\/\//.test(url) || /^https?:\/\//.test(url)){
+      return /(?:[\w\-\_]+\.)+(?:esri|arcgis)\.com/.test(url); //api url must be in esri.com or arcgis.com
+    }else{
+      return true;
+    }
+  }
+
   function getPortalUrlFromLocation(){
     var portalUrl = getPortalServerFromLocation() +  getDeployContextFromLocation();
     return portalUrl;
@@ -155,9 +178,9 @@ var
   }
 
   function getDeployContextFromLocation (){
-    var keyIndex = window.location.href.indexOf("/home");
+    var keyIndex = window.location.href.indexOf("/home/");
     if(keyIndex < 0){
-      keyIndex = window.location.href.indexOf("/apps");
+      keyIndex = window.location.href.indexOf("/apps/");
     }
     var context = window.location.href.substring(window.location.href.indexOf(
       window.location.host) + window.location.host.length + 1, keyIndex);
@@ -234,20 +257,24 @@ var
         failure: prePath + "libs/polyfills/trim.js",
         callback: completeCb
       }, {
-        test: false,
-        failure: prePath + "libs/polyfills/FileSaver.js",
-        callback: completeCb
-      }, {
-        test: typeof Blob !== 'undefined',
-        failure: prePath + "libs/polyfills/FileSaver.ie9.js",
-        callback: completeCb
-      }, {
         test: window.Blob,
         failure: prePath + "libs/polyfills/Blob.js",
         callback: completeCb
       }, {
         test: window.ArrayBuffer,
         failure: prePath + "libs/polyfills/typedarray.js",
+        callback: completeCb
+      }, {
+        test: Object.assign,
+        failure: prePath + "libs/polyfills/assign.js",
+        callback: completeCb
+      }, {
+        test: Array.prototype.includes,
+        failure: prePath + "libs/polyfills/array.includes.js",
+        callback: completeCb
+      }, {
+        test: String.prototype.includes,
+        failure: prePath + "libs/polyfills/string.includes.js",
         callback: completeCb
       }];
 
@@ -270,6 +297,7 @@ var
       }
     }
 
+    dirNode.setAttribute("lang", locale);
     if (isRTLLocale) {
       dirNode.setAttribute("dir", "rtl");
       dirNode.className += " esriRtl jimu-rtl";
@@ -315,4 +343,136 @@ var
     }
     return url;
   }
+
+  var _detectUserAgent = function() {
+    var os = {}, browser = {},
+      ua = navigator.userAgent, platform = navigator.platform,
+      webkit = ua.match(/Web[kK]it[\/]{0,1}([\d.]+)/),
+      android = ua.match(/(Android);?[\s\/]+([\d.]+)?/),
+      osx = !!ua.match(/\(Macintosh\; Intel /),
+      ipad = ua.match(/(iPad).*OS\s([\d_]+)/),
+      ipod = ua.match(/(iPod)(.*OS\s([\d_]+))?/),
+      iphone = !ipad && ua.match(/(iPhone\sOS)\s([\d_]+)/),
+      webos = ua.match(/(webOS|hpwOS)[\s\/]([\d.]+)/),
+      win = /Win\d{2}|Windows/.test(platform),
+      wp = ua.match(/Windows Phone ([\d.]+)/),
+      touchpad = webos && ua.match(/TouchPad/),
+      kindle = ua.match(/Kindle\/([\d.]+)/),
+      silk = ua.match(/Silk\/([\d._]+)/),
+      blackberry = ua.match(/(BlackBerry).*Version\/([\d.]+)/),
+      bb10 = ua.match(/(BB10).*Version\/([\d.]+)/),
+      rimtabletos = ua.match(/(RIM\sTablet\sOS)\s([\d.]+)/),
+      playbook = ua.match(/PlayBook/),
+      chrome = ua.match(/Chrome\/([\d.]+)/) || ua.match(/CriOS\/([\d.]+)/),
+      firefox = ua.match(/Firefox\/([\d.]+)/),
+      firefoxos = ua.match(/\((?:Mobile|Tablet); rv:([\d.]+)\).*Firefox\/[\d.]+/),
+      ie = ua.match(/MSIE\s([\d.]+)/) || ua.match(/Trident\/[\d](?=[^\?]+).*rv:([0-9.].)/),
+      webview = !chrome && ua.match(/(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/),
+      safari = webview || ua.match(/Version\/([\d.]+)([^S](Safari)|[^M]*(Mobile)[^S]*(Safari))/);
+
+    browser.webkit = !!webkit;
+    if (browser.webkit) {
+      browser.version = webkit[1];
+    }
+
+    if (android) {
+      os.android = true;
+      os.version = android[2];
+    }
+    if (iphone && !ipod) {
+      os.ios = os.iphone = true;
+      os.version = iphone[2].replace(/_/g, '.');
+    }
+    if (ipad) {
+      os.ios = os.ipad = true;
+      os.version = ipad[2].replace(/_/g, '.');
+    }
+    if (ipod) {
+      os.ios = os.ipod = true;
+      os.version = ipod[3] ? ipod[3].replace(/_/g, '.') : null;
+    }
+    if (wp) {
+      os.wp = true;
+      os.version = wp[1];
+    }
+    if (webos) {
+      os.webos = true;
+      os.version = webos[2];
+    }
+    if (touchpad) {
+      os.touchpad = true;
+    }
+    if (blackberry) {
+      os.blackberry = true;
+      os.version = blackberry[2];
+    }
+    if (bb10) {
+      os.bb10 = true;
+      os.version = bb10[2];
+    }
+    if (rimtabletos) {
+      os.rimtabletos = true;
+      os.version = rimtabletos[2];
+    }
+    if (playbook) {
+      browser.playbook = true;
+    }
+    if (kindle) {
+      os.kindle = true;
+      os.version = kindle[1];
+    }
+    if (silk) {
+      browser.silk = true;
+      browser.version = silk[1];
+    }
+    if (!silk && os.android && ua.match(/Kindle Fire/)) {
+      browser.silk = true;
+    }
+    if (chrome) {
+      browser.chrome = true;
+      browser.version = chrome[1];
+    }
+    if (firefox) {
+      browser.firefox = true;
+      browser.version = firefox[1];
+    }
+    if (firefoxos) {
+      os.firefoxos = true;
+      os.version = firefoxos[1];
+    }
+    if (ie) {
+      browser.ie = true;
+      browser.version = ie[1];
+    }
+    if (safari && (osx || os.ios || win)) {
+      browser.safari = true;
+      if (!os.ios) {
+        browser.version = safari[1];
+      }
+    }
+    if (webview) {
+      browser.webview = true;
+    }
+
+    os.tablet = !!(ipad || playbook || (android && !ua.match(/Mobile/)) ||
+    (firefox && ua.match(/Tablet/)) || (ie && !ua.match(/Phone/) && ua.match(/Touch/)));
+    os.phone = !!(!os.tablet && !os.ipod && (android || iphone || webos || blackberry || bb10 ||
+    (chrome && ua.match(/Android/)) || (chrome && ua.match(/CriOS\/([\d.]+)/)) ||
+    (firefox && ua.match(/Mobile/)) || (ie && ua.match(/Touch/))));
+
+    return {
+      os: os,
+      browser: browser
+    };
+  };
+  var _isMobileUa = function() {
+    var uaInfo = global.userAgent;
+    if (true === uaInfo.os.phone || true === uaInfo.os.tablet) {
+      return true;
+    } else {
+      return false;
+    }
+  };
+  global.userAgent = _detectUserAgent();
+  global.isMobileUa = _isMobileUa();
 })(window);

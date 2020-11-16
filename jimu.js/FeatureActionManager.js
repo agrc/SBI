@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -167,12 +167,12 @@ define(['dojo/_base/declare',
             uri = widgetJson.amdFolder + action.uri;
           }
 
+          var i18nLabels = widgetJson.manifest['i18nLabels_featureAction_' + action.name];
           defs.push(this.registerAction({
             uri: uri,
             widgetId: widgetJson.id,
             name: action.name,
-            label: widgetJson.manifest['i18nLabels_featureAction_' + action.name][window.dojoConfig.locale] ||
-              widgetJson.manifest['i18nLabels_featureAction_' + action.name].defaultLabel
+            label: i18nLabels[window.dojoConfig.locale] || i18nLabels[window.dojoConfig.locale.split('-')[0]] || i18nLabels.defaultLabel
           }));
         }, this);
         return all(defs);

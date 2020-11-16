@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,20 +65,37 @@ define(['dojo/_base/declare',
       },
 
       /**
-       * apply Filter expression to a layer
-       * @param  {[type]} layerId         [description]
+       * apply Filter expression to a layer.
+       * This method can be invoked with these 2 format:
+       * 1)
+       * @param  {[string]} layerId         [the layer id]
        * @param  {[type]} widgetId        [description]
        * @param  {[type]} expression      [description]
        * @param  {[type]} enableMapFilter [true/false or null or undefined]
        * @param  {[type]} useAND [true/false or null or undefined]
+       * @param  {[type]} zoomAfterFilter [true/false or null or undefined]
+       * 2)
+       * @param options: an object with all of the above properties.
        */
-      applyWidgetFilter: function(layerId, widgetId, expression, enableMapFilter, useAND) {
+      applyWidgetFilter: function(layerId, widgetId, expression, enableMapFilter, useAND, zoomAfterFilter) {
+        var options = typeof layerId === 'object'? layerId: null;
+
+        if(options){
+          layerId = options.layerId;
+          widgetId = options.widgetId;
+          expression = options.expression;
+          enableMapFilter = options.enableMapFilter;
+          useAND = options.useAND;
+          zoomAfterFilter = options.zoomAfterFilter;
+        }
+
         this._setFilterExp(layerId, widgetId, expression, enableMapFilter, useAND);
 
-        var layerInfo = this.layerInfos.getLayerInfoById(layerId);
-        var filterExp = this._getFilterExp(layerId);
-        if (filterExp !== null) {
-          layerInfo.setFilter(filterExp);
+        var layerInfo = this.layerInfos.getLayerInfoById(layerId) ||
+          this.layerInfos.getTableInfoById(layerId);
+        var filterExp = this.getFilterExp(layerId);
+        if (filterExp !== null && layerInfo) {
+          layerInfo.setFilter(filterExp, {'zoomAfterFilter': zoomAfterFilter});
         }
       },
 
@@ -113,7 +130,7 @@ define(['dojo/_base/declare',
       },
 
       _traversalFilter: function() {
-        this.layerInfos.traversal(lang.hitch(this, function(layerInfo) {
+        this.layerInfos.traversalAll(lang.hitch(this, function(layerInfo) {
           if (!this._filters[layerInfo.id]) {
             this._filters[layerInfo.id] = {
               definitionExpression: layerInfo.getFilter(),
@@ -150,6 +167,7 @@ define(['dojo/_base/declare',
         for (var p in mapFilterControls) {
           var control = mapFilterControls[p];
           if (control.priority > count) {
+            count = control.priority;
             priorityControl = control;
           }
         }
@@ -182,7 +200,7 @@ define(['dojo/_base/declare',
         }
       },
 
-      _getFilterExp: function(layerId) {
+      getFilterExp: function(layerId, excludeWidgetId) {
         if (!this._filters[layerId]) {
           return null;
         }
@@ -194,6 +212,9 @@ define(['dojo/_base/declare',
 
         for (var p in filterExprs) {
           var expr = filterExprs[p];
+          if(excludeWidgetId && p.indexOf(excludeWidgetId) >= 0){
+            continue; //not including filters from current widget.   
+          }
           if (expr) {
             parts.push('(' + expr + ')');
           }

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,13 +20,12 @@ define([
   'dojo/_base/lang',
   'dojo/Deferred',
   'dojo/promise/all',
-  'jimu/portalUrlUtils',
   'jimu/WidgetManager',
+  'jimu/portalUrlUtils',
   'esri/lang',
-  'esri/graphicsUtils',
   './NlsStrings'
-], function(declare, array, lang, Deferred, all, portalUrlUtils, WidgetManager, esriLang,
-  graphicsUtils, NlsStrings) {
+], function(declare, array, lang, Deferred, all, WidgetManager, portalUrlUtils, esriLang,
+  NlsStrings) {
   var clazz = declare([], {
 
     _candidateMenuItems: null,
@@ -48,13 +47,10 @@ define([
     _getATagLabel: function() {
       var url;
       var label;
-      var itemLayerId = this._layerInfo._isItemLayer && this._layerInfo._isItemLayer();
       var layerUrl = this._layerInfo.getUrl();
-
-      if (itemLayerId) {
-        url = portalUrlUtils.getItemDetailsPageUrl(
-                portalUrlUtils.getStandardPortalUrl(this.layerListWidget.appConfig.portalUrl),
-                itemLayerId);
+      var basicItemInfo = this._layerInfo.isItemLayer();
+      if (basicItemInfo) {
+        url = this._getItemDetailsPageUrl(basicItemInfo) || layerUrl;
         label = this.nls.itemShowItemDetails;
       } else if (layerUrl &&
         (this._layerType === "CSVLayer" || this._layerType === "KMLLayer")) {
@@ -73,11 +69,16 @@ define([
         url = '';
         label = this.nls.itemDesc;
       }
-
+      this._ATagLabelUrl = url;
       return '<a class="menu-item-description" target="_blank" href="' +
         url + '">' + label + '</a>';
     },
 
+    _getItemDetailsPageUrl: function(basicItemInfo) {
+      var itemUrl = "";
+      itemUrl = portalUrlUtils.getItemDetailsPageUrl(basicItemInfo.portalUrl, basicItemInfo.itemId);
+      return itemUrl;
+    },
 
     _initCandidateMenuItems: function() {
       //descriptionTitle: NlsStrings.value.itemDesc,
@@ -96,6 +97,9 @@ define([
       }, {
         key: 'transparency',
         label: this.nls.itemTransparency
+      },  {
+        key: 'setVisibilityRange',
+        label: this.nls.itemSetVisibilityRange
       }, {
         key: 'moveup',
         label: this.nls.itemMoveUp
@@ -108,6 +112,9 @@ define([
       }, {
         key: 'controlPopup',
         label: this.nls.removePopup
+      }, {
+        key: 'controlLabels',
+        label: this.nls.showLabels
       }, {
         key: 'url',
         label: this._getATagLabel()
@@ -129,34 +136,57 @@ define([
       }, this);
     },
 
-    _isSupportedByAT: function() {
-      return true;
+    _getSupportTableInfoForAllSublayers: function(layerInfo) {
+      var defs = [];
+      layerInfo.traversal(function(subLayerInfo) {
+        var def = new Deferred();
+        subLayerInfo.getSupportTableInfo().then(function(supportedInfo) {
+          supportedInfo.layerInfo = subLayerInfo;
+          def.resolve(supportedInfo);
+        });
+        defs.push(def);
+      });
+      return all(defs);
     },
 
-    _isSupportedByAT_bk: function(attributeTableWidget, supportTableInfo) {
-      var isSupportedByAT;
-      var isLayerHasBeenConfigedInAT;
-      var ATConfig = attributeTableWidget.config;
+    _isSupportedByAT: function(attributeTableWidget, allSupportedInfo) {
+      /*jshint unused: false*/
+      var isSupported = array.some(allSupportedInfo, function(supportTableInfo) {
+        if (!supportTableInfo.isSupportedLayer ||
+            !supportTableInfo.isSupportQuery ||
+            supportTableInfo.otherReasonCanNotSupport) {
+          return false;
+        } else {
+          return true;
+        }
+      });
+      return isSupported;
+    },
 
-      if(ATConfig.layerInfos.length === 0) {
-        isLayerHasBeenConfigedInAT = true;
-      } else {
-        isLayerHasBeenConfigedInAT = array.some(ATConfig.layerInfos, function(layerInfo) {
-          if(layerInfo.id === this._layerInfo.id && layerInfo.show) {
+    /*
+    _isPopupSupported: function() {
+      var def = new Deferred();
+      var defs = [];
+      this._layerInfo.traversal(function(layerInfo) {
+        if(layerInfo.isLeaf()) {
+          defs.push(layerInfo.loadInfoTemplate());
+        }
+      });
+
+      all(defs).then(function(infoTemplates) {
+        array.some(infoTemplates, function(infoTemplates) {
+          if(infoTemplates) {
+            def.resolve(true);
             return true;
+          } else {
+            def.resolve(false);
+            return false;
           }
-        }, this);
-      }
-      if (!supportTableInfo.isSupportedLayer ||
-          !supportTableInfo.isSupportQuery ||
-          supportTableInfo.otherReasonCanNotSupport ||
-          !isLayerHasBeenConfigedInAT) {
-        isSupportedByAT = false;
-      } else {
-        isSupportedByAT = true;
-      }
-      return isSupportedByAT;
+        });
+      });
+      return def;
     },
+    */
 
     getDeniedItems: function() {
       // summary:
@@ -182,26 +212,57 @@ define([
         });
       }
 
-      if (!this._layerInfo.getUrl()) {
+      if (!this._ATagLabelUrl) {
         dynamicDeniedItems.push({
           'key': 'url',
           'denyType': 'disable'
         });
       }
 
-      var loadInfoTemplateDef = this._layerInfo.loadInfoTemplate();
-      var getSupportTableInfoDef = this._layerInfo.getSupportTableInfo();
+      // deny controlLabels
+      if (!this._layerInfo.canShowLabel()) {
+        dynamicDeniedItems.push({
+          'key': 'controlLabels',
+          'denyType': 'hidden'
+        });
+      }
+
+      // deny setVisibilityRange
+      if(this._layerInfo.originOperLayer.featureCollection) {
+        dynamicDeniedItems.push({
+          'key': 'setVisibilityRange',
+          'denyType': 'hidden'
+        });
+      } else if(!this._layerInfo.isRootLayer() &&
+          this._layerInfo.getRootLayerInfo().layerObject.declaredClass === "esri.layers.ArcGISTiledMapServiceLayer") {
+        dynamicDeniedItems.push({
+          'key': 'setVisibilityRange',
+          'denyType': 'hidden'
+        });
+      } else if(!this._layerInfo.isRootLayer() &&
+          this._layerInfo.getRootLayerInfo().layerObject.declaredClass === "esri.layers.ArcGISDynamicMapServiceLayer" &&
+          !this._layerInfo.getRootLayerInfo().layerObject.supportsDynamicLayers) {
+        dynamicDeniedItems.push({
+          'key': 'setVisibilityRange',
+          'denyType': 'disable'
+        });
+      }
+
+      //var loadInfoTemplateDef = this._layerInfo.loadInfoTemplate();
+      var isPopupSupportedDef = this._layerInfo.isSupportPopupNested();
+      var getSupportTableInfoDef = this._getSupportTableInfoForAllSublayers(this._layerInfo);
 
       all({
-        infoTemplate: loadInfoTemplateDef,
+        //infoTemplate: loadInfoTemplateDef,
+        isPopupSupported: isPopupSupportedDef,
         supportTableInfo: getSupportTableInfoDef
       }).then(lang.hitch(this, function(result) {
 
         // deny controlPopup
-        if (!result.infoTemplate) {
+        if (!result.isPopupSupported) {
           dynamicDeniedItems.push({
             'key': 'controlPopup',
-            'denyType': 'disable'
+            'denyType': 'hidden'
           });
         }
 
@@ -216,8 +277,12 @@ define([
             'denyType': 'hidden'
           });
         } else if (!this._isSupportedByAT(attributeTableWidget, supportTableInfo)) {
-          if(this._layerInfo.parentLayerInfo &&
-             this._layerInfo.parentLayerInfo.isMapNotesLayerInfo()) {
+          dynamicDeniedItems.push({
+            'key': 'table',
+            'denyType': 'disable'
+          });
+          if(this._layerInfo.isMapNotesLayerInfo() || (this._layerInfo.parentLayerInfo &&
+             this._layerInfo.parentLayerInfo.isMapNotesLayerInfo())) {
             dynamicDeniedItems.push({
               'key': 'table',
               'denyType': 'hidden'
@@ -228,7 +293,6 @@ define([
               'denyType': 'disable'
             });
           }
-
         }
         defRet.resolve(dynamicDeniedItems);
       }), function() {
@@ -267,6 +331,9 @@ define([
         case 'controlPopup':
           this._onControlPopup();
           break;
+        case 'controlLabels':
+          this._onControlLabels();
+          break;
 
       }
       return result;
@@ -285,32 +352,7 @@ define([
      **********************************/
     _onItemZoomToClick: function(evt) {
       /*jshint unused: false*/
-      //this.map.setExtent(this.getExtent());
-      this._layerInfo.getExtent().then(lang.hitch(this, function(geometries) {
-        var ext = null;
-        var a = geometries && geometries.length > 0 && geometries[0];
-        if(this._isValidExtent(a)){
-          ext = a;
-        }
-        if(ext){
-          this._layerInfo.map.setExtent(ext);
-        }else if(this._layerInfo.map.graphicsLayerIds.indexOf(this._layerInfo.id) >= 0){
-          //if fullExtent doesn't exist and the layer is (or sub class of) GraphicsLayer,
-          //we can calculate the full extent
-          this._layerInfo.getLayerObject().then(lang.hitch(this, function(layerObject){
-            if(layerObject.graphics && layerObject.graphics.length > 0){
-              try{
-                ext = graphicsUtils.graphicsExtent(layerObject.graphics);
-              }catch(e){
-                console.error(e);
-              }
-              if(ext){
-                this._layerInfo.map.setExtent(ext);
-              }
-            }
-          }));
-        }
-      }));
+      this._layerInfo.zoomTo();
     },
 
     _isValidExtent: function(extent){
@@ -339,35 +381,57 @@ define([
     },
 
     _onTableItemClick: function(evt) {
-      this._layerInfo.getSupportTableInfo().then(lang.hitch(this, function(supportTableInfo) {
+      this._getSupportTableInfoForAllSublayers(this._layerInfo).then(lang.hitch(this, function(allSupportTableInfo) {
         var widgetManager;
         var attributeTableWidgetEle =
                     this.layerListWidget.appConfig.getConfigElementsByName("AttributeTable")[0];
-        if(this._isSupportedByAT(attributeTableWidgetEle, supportTableInfo)) {
+        if(this._isSupportedByAT(attributeTableWidgetEle, allSupportTableInfo)) {
           widgetManager = WidgetManager.getInstance();
-          widgetManager.triggerWidgetOpen(attributeTableWidgetEle.id)
-          .then(lang.hitch(this, function() {
-            evt.layerListWidget.publishData({
-              'target': 'AttributeTable',
-              'layer': this._layerInfo
-            });
-          }));
+
+          array.forEach(allSupportTableInfo, function(supportTableInfo) {
+            if(supportTableInfo.isSupportedLayer) {
+              widgetManager.triggerWidgetOpen(attributeTableWidgetEle.id)
+              .then(lang.hitch(this, function(atWidget) {
+                if (atWidget) {
+                  widgetManager.activateWidget(atWidget);
+                }
+                evt.layerListWidget.publishData({
+                  'target': 'AttributeTable',
+                  'layer': supportTableInfo.layerInfo
+                });
+              }));
+            }
+          }, this);
+
         }
       }));
     },
 
     _onTransparencyChanged: function(evt) {
+      this.layerListWidget._denyLayerInfosOpacityResponseOneTime = true;
       this._layerInfo.setOpacity(1 - evt.extraData.newTransValue);
     },
 
     _onControlPopup: function(evt) {
       /*jshint unused: false*/
-      if (this._layerInfo.controlPopupInfo.enablePopup) {
-        this._layerInfo.disablePopup();
+      //if (this._layerInfo.controlPopupInfo.enablePopup) {
+      if(this._layerInfo.isPopupNestedEnabled()) {
+        this._layerInfo.disablePopupNested();
       } else {
-        this._layerInfo.enablePopup();
+        this._layerInfo.enablePopupNested();
       }
       this._layerInfo.map.infoWindow.hide();
+    },
+
+    _onControlLabels: function(evt) {
+      /*jshint unused: false*/
+      if(this._layerInfo.canShowLabel()) {
+        if(this._layerInfo.isShowLabels()) {
+          this._layerInfo.hideLabels();
+        } else {
+          this._layerInfo.showLabels();
+        }
+      }
     }
   });
 
@@ -375,9 +439,13 @@ define([
     var retDef = new Deferred();
     var isRootLayer = layerInfo.isRootLayer();
     var defaultItemInfos = [{
-      key: 'url',
-      onClick: null
-    }];
+        key: 'controlPopup'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'url',
+        onClick: null
+      }];
 
     var itemInfoCategoreList = {
       'RootLayer': [{
@@ -385,11 +453,21 @@ define([
       }, {
         key: 'transparency'
       }, {
+        key: 'setVisibilityRange'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'controlPopup'
+      }, {
         key: 'separator'
       }, {
         key: 'moveup'
       }, {
         key: 'movedown'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'table'
       }, {
         key: 'separator'
       }, {
@@ -400,9 +478,15 @@ define([
       }, {
         key: 'transparency'
       }, {
+        key: 'setVisibilityRange'
+      }, {
         key: 'separator'
       }, {
         key: 'controlPopup'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'controlLabels'
       }, {
         key: 'separator'
       }, {
@@ -419,6 +503,10 @@ define([
         key: 'url'
       }],
       'FeatureLayer': [{
+        key: 'setVisibilityRange'
+      }, {
+        key: 'separator'
+      },{
         key: 'controlPopup'
       }, {
         key: 'separator'
@@ -429,11 +517,39 @@ define([
       }, {
         key: 'url'
       }],
+      'SublayerOfDynamicMapserviceLayer': [{
+        key: 'setVisibilityRange'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'url'
+      }],
       'GroupLayer': [{
+        key: 'setVisibilityRange'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'controlPopup'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'table'
+      }, {
+        key: 'separator'
+      }, {
         key: 'url'
       }],
       'Table': [{
         key: 'table'
+      }, {
+        key: 'separator'
+      }, {
+        key: 'url'
+      }],
+      'BasemapLayer': [{
+        key: 'zoomto'
+      }, {
+        key: 'transparency'
       }, {
         key: 'separator'
       }, {
@@ -444,7 +560,11 @@ define([
 
     layerInfo.getLayerType().then(lang.hitch(this, function(layerType) {
       var itemInfoCategory = "";
-      if (isRootLayer &&
+      if (layerInfo.isBasemap() && layerInfo.isRootLayer()) {
+        itemInfoCategory = "BasemapLayer";
+      } else if(layerInfo.isBasemap()) {
+        itemInfoCategory = "default";
+      } else if (isRootLayer &&
           (layerType === "FeatureLayer" ||
             layerType === "CSVLayer" ||
             layerType === "ArcGISImageServiceLayer" ||
@@ -455,6 +575,11 @@ define([
         itemInfoCategory = "RootLayer";
       } else if (layerType === "FeatureLayer" || layerType === "CSVLayer") {
         itemInfoCategory = "FeatureLayer";
+      } else if (layerInfo.isLeaf() &&
+                layerInfo.getRootLayerInfo() &&
+                layerInfo.getRootLayerInfo().layerObject &&
+                layerInfo.getRootLayerInfo().layerObject.declaredClass === "esri.layers.ArcGISDynamicMapServiceLayer") {
+        itemInfoCategory = "SublayerOfDynamicMapserviceLayer";
       } else if (layerType === "GroupLayer") {
         itemInfoCategory = "GroupLayer";
       } else if (layerType === "Table") {

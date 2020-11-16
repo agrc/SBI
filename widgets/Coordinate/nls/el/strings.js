@@ -12,6 +12,7 @@ define({
   "Default": "Προκαθορισμένο",
   "Inches": "Ίντσες",
   "Foot": "Πόδια",
+  "Foot_US": "Πόδια ΗΠΑ",
   "Yards": "Γιάρδες",
   "Miles": "Μίλια",
   "Nautical_Miles": "Ναυτικά μίλια",
@@ -21,7 +22,7 @@ define({
   "Kilometers": "Χιλιόμετρα",
   "Decimeters": "Δεκατόμετρα",
   "Decimal_Degrees": "Μοίρες",
-  "Degree_Minutes_Seconds": "Μοίρες Λεπτά Δευτερόλεπτα",
+  "Degree_Minutes_Seconds": "Μοίρες λεπτά δευτερόλεπτα",
   "MGRS": "MGRS",
   "USNG": "USNG"
 });

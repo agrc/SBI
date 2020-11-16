@@ -1,6 +1,6 @@
 define({
   "_widgetLabel": "Κεφαλίδα",
-  "signin": "Είσοδος",
+  "signin": "Εισέλθετε",
   "signout": "Έξοδος",
   "about": "Πληροφορίες",
   "signInTo": "Είσοδος στο",

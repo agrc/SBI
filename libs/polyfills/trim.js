@@ -4,11 +4,11 @@
 
 String.prototype.trim = (function() {
 
-        var trimRegex = /(^\s+|\s+$)/g;
+	var trimRegex = /(^\s+|\s+$)/g;
 
-        return function() {
-                return this.replace(trimRegex, '');
-        };
+	return function() {
+		return this.replace(trimRegex, '');
+	};
 
 }());
 

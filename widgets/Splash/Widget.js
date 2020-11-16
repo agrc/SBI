@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,19 +18,22 @@ define(['dojo/_base/declare',
     'dojo/_base/lang',
     'dojo/_base/html',
     'dojo/on',
+    'dojo/keys',
     'dojo/query',
     'dojo/cookie',
     'dijit/_WidgetsInTemplateMixin',
     'jimu/BaseWidget',
+    'dojo/topic',
     'jimu/dijit/CheckBox',
-    'jimu/tokenUtils',
     'jimu/utils',
     'esri/lang',
     'jimu/dijit/LoadingShelter',
-    'dojo/Deferred'
+    'dojo/Deferred',
+    'jimu/dijit/EditorXssFilter',
+    'jimu/dijit/EditorPreviewLinkMessager'
   ],
-  function(declare, lang, html, on, query, cookie, _WidgetsInTemplateMixin, BaseWidget,
-           CheckBox, TokenUtils, utils, esriLang, LoadingShelter, Deferred) {
+  function(declare, lang, html, on, keys, query, cookie, _WidgetsInTemplateMixin, BaseWidget, topic,
+           CheckBox, utils, esriLang, LoadingShelter, Deferred, EditorXssFilter, EditorPreviewLinkMessager) {
     var clazz = declare([BaseWidget, _WidgetsInTemplateMixin], {
       baseClass: 'jimu-widget-splash',
       _hasContent: null,
@@ -39,12 +42,18 @@ define(['dojo/_base/declare',
 
       postCreate: function() {
         this.inherited(arguments);
+        this.isFirstFoucs = true;
+        html.setAttr(this.domNode, 'aria-label', this.nls._widgetLabel);
+
         //LoadingShelter
         this.shelter = new LoadingShelter({
           hidden: true
         });
         this.shelter.placeAt(this.domNode);
         this.shelter.startup();
+
+        //xss filter
+        this.config.splash.splashContent = EditorXssFilter.getInstance().sanitize(this.config.splash.splashContent);
 
         this._hasContent = this.config.splash && this.config.splash.splashContent;
         this._requireConfirm = this.config.splash && this.config.splash.requireConfirm;
@@ -71,20 +80,33 @@ define(['dojo/_base/declare',
             label: utils.stripHTML(hint),
             checked: false
           }, this.confirmCheck);
-          this.own(on(this.confirmCheck.domNode, 'click', lang.hitch(this, this.onCheckBoxClick)));
-          html.setAttr(this.confirmCheck.domNode, 'title', utils.stripHTML(hint));
+          this.own(on(this.confirmCheck, 'change', lang.hitch(this, this.onCheckBoxClick)));
           this.confirmCheck.startup();
         }
       },
 
       onOpen: function() {
-        if (!TokenUtils.isInConfigOrPreviewWindow()) {
+        if (!utils.isInConfigOrPreviewWindow()) {
           var isFirstKey = this._getCookieKey();
           var isfirst = cookie(isFirstKey);
           if (esriLang.isDefined(isfirst) && isfirst.toString() === 'false') {
             this.close();
           }
         }
+        // if (true === this._requireConfirm) {
+        //   //checkbox
+        //   this.confirmCheck.focus();
+        // } else if ((false === this._requireConfirm && false === this._showOption) ||
+        //   (false === this._requireConfirm && true === this._showOption)) {
+        //   this.okNode.focus();
+        // }
+        if (!this._requireConfirm && !this._showOption) {
+          this.okNode.focus();
+        } else {
+          this.confirmCheck.focus();
+        }
+
+        this._eventShow();
       },
 
       startup: function() {
@@ -93,6 +115,66 @@ define(['dojo/_base/declare',
         this._normalizeDomNodePosition();
 
         this._setConfig();
+
+        this.own(on(this.domNode, 'keydown', lang.hitch(this, function(evt){
+          if(html.hasClass(evt.target, this.baseClass) && evt.keyCode === keys.ESCAPE){
+            if(!this._requireConfirm){
+              this.close();
+              utils.focusOnFirstSkipLink();
+            }
+          }
+        })));
+
+        this.own(on(this.splashDesktop, 'keydown', lang.hitch(this, function(evt){
+          if(html.hasClass(evt.target, 'jimu-widget-splash-desktop')){
+            if(evt.keyCode === keys.TAB){
+              evt.preventDefault();
+            }
+            //allow user to use tab-key to focus first node from widgetDom on this spacial widget.
+            if(evt.keyCode === keys.ENTER || (!evt.shiftKey && evt.keyCode === keys.TAB)){
+              utils.focusFirstFocusNode(this.domNode);
+            }
+          }
+        })));
+
+        var focusableNodes = utils.getFocusNodesInDom(this.domNode);
+        utils.initFirstFocusNode(this.domNode, focusableNodes[0]);
+        utils.initLastFocusNode(this.domNode, this.okNode);
+
+        this._onlyFocus = true;
+        this.own(on(this.customContentNode, 'focus', lang.hitch(this, function(){
+          if(this._onlyFocus){
+            this._onlyFocus = false;
+          }else{
+            this.customContentNode.scrollTop = 0;
+            html.setStyle(this.customContentNode, 'display', 'none');
+            // blur current node's focus state. It only works when it's between up and down settings.
+            // this.domNode.focus(); //This causes the page to flicker.
+            this.customContentNode.blur();
+            html.setStyle(this.customContentNode, 'display', 'block');
+            setTimeout(lang.hitch(this, function(){
+              this._onlyFocus = true;
+              this.customContentNode.focus();
+            }), 30);
+          }
+        })));
+
+        utils.setWABLogoDefaultAlt(this.customContentNode);
+
+        //focus on first-node when focusing on the container of splash widget at first time.
+        this.own(on(this.splashDesktop, 'focus', lang.hitch(this, function(){
+          if(this.isFirstFoucs){
+            this.isFirstFoucs = false;
+            setTimeout(function(){
+              focusableNodes[0].focus();
+            }, 0);
+          }
+        })));
+      },
+
+      _setOkNodeAriaLabel: function(){
+        var isDisable = this._requireConfirm && !this.confirmCheck.getValue() ? 'true' : 'false';
+        html.attr(this.okNode, "aria-disabled", isDisable);
       },
 
       _setConfig: function() {
@@ -111,6 +193,8 @@ define(['dojo/_base/declare',
             }
           }
           this.okNode.innerHTML = this.config.splash.button.text || this.nls.ok;
+          html.attr(this.okNode, "title", this.config.splash.button.text || this.nls.ok);
+          this._setOkNodeAriaLabel();
 
           var background = this.config.splash.background;
           if (typeof background !== "undefined") {
@@ -138,14 +222,14 @@ define(['dojo/_base/declare',
               }
             }
           }
-          //html.setStyle(query(".label", this.dmoNode)[0], 'color', utils.invertColor(background.color));//auto color for text
+          //html.setStyle(query(".label", this.domNode)[0], 'color', utils.invertColor(background.color));//auto color for text
           var confirm = this.config.splash.confirm;
-          if (typeof confirm !== "undefined") {
-            var dom = query(".label", this.dmoNode)[0];
-            if ("undefined" !== typeof confirm.color) {
+          if (typeof confirm !== "undefined" && this.domNode) {
+            var dom = query(".label", this.domNode)[0];
+            if ("undefined" !== typeof confirm.color && dom) {
               html.setStyle(dom, 'color', confirm.color);
             }
-            if ("undefined" !== typeof confirm.transparency) {
+            if ("undefined" !== typeof confirm.transparency && dom) {
               html.setStyle(dom, 'opacity', (1 - confirm.transparency));
             }
           }
@@ -157,7 +241,7 @@ define(['dojo/_base/declare',
           }
 
           //resize
-          if (!TokenUtils.isInConfigOrPreviewWindow()) {
+          if (!utils.isInConfigOrPreviewWindow()) {
             var isFirstKey = this._getCookieKey();
             var isfirst = cookie(isFirstKey);
             if (esriLang.isDefined(isfirst) && isfirst.toString() === 'false') {
@@ -172,6 +256,18 @@ define(['dojo/_base/declare',
           this._resizeContentImg();
 
           html.removeClass(this.envelopeNode, "buried");//show the node
+
+          var editorPreviewLinkMessager = EditorPreviewLinkMessager.getInstance();
+          var isInBuilder;
+          try {
+            isInBuilder = editorPreviewLinkMessager.isInBuilder();
+          } catch(error) {
+            isInBuilder = false;
+          }
+          if (!!isInBuilder && editorPreviewLinkMessager.isHasContent(this._hasContent, this._isClosed)) {
+            editorPreviewLinkMessager.filter(this.customContentNode);
+          }
+
           this.shelter.hide();
         }));
       },
@@ -225,7 +321,7 @@ define(['dojo/_base/declare',
           this._setSizeFromConfig();
         }
 
-        this._moveContentToMiddle();
+        this._resizeCustomContent();
         this._resizeContentImg();
       },
       _getNodeStylePx: function(node, prop) {
@@ -235,20 +331,34 @@ define(['dojo/_base/declare',
           return 0;
         }
       },
-      _moveContentToMiddle: function() {
-        //var containerBox = html.getMarginBox(this.splashContainerNode);
-        //var customContentNode = html.getContentBox(this.customContentNode);
+      _resizeCustomContent: function() {
         var containerContent = html.getContentBox(this.splashContainerNode),
           customContentScrollheight = this.customContentNode.scrollHeight,
           footerBox = html.getMarginBox(this.footerNode);
-        var contentMarginTop = this._getNodeStylePx(this.customContentNode, "margin-top"),
-          contentMarginButtom = this._getNodeStylePx(this.customContentNode, "margin-bottom"),//between content & confirm text
+        var contentMarginButtom = this._getNodeStylePx(this.customContentNode, "margin-bottom"),//between content & confirm text
           footerBottom = this._getNodeStylePx(this.footerNode, "bottom"),//between footer & splashBottom
-          contentSpace = containerContent.h - (footerBox.h + footerBottom),
-          middleLine = (contentSpace - contentMarginTop) / 2;
+          contentSpace = containerContent.h - (footerBox.h + footerBottom);
+
+        var isNeedLimitCustomContentHeight = (customContentScrollheight >= contentSpace);
+        if (true === isNeedLimitCustomContentHeight || window.appInfo.isRunInMobile) {
+          //limit the customContent height   OR   extend height in mobile
+          html.setStyle(this.customContentNode, 'height', (contentSpace - contentMarginButtom) + 'px');
+        } else {
+          html.setStyle(this.customContentNode, 'height', 'auto');
+          this._moveContentToMiddle({
+            contentSpace: contentSpace,
+            customContentScrollheight: customContentScrollheight
+          });
+        }
+      },
+      //align custom content to vertically
+      _moveContentToMiddle: function(context) {
+        var contentMarginTop = 10,//this._getNodeStylePx(this.customContentNode, "margin-top"),
+          middleLine = (context.contentSpace - contentMarginTop) / 2;
+        //move the content to middle
         if (this.contentVertical === "middle") {
           //customContent half-height line is upon the middleLine
-          var uponTheMiddleline = customContentScrollheight / 2 - middleLine;
+          var uponTheMiddleline = context.customContentScrollheight / 2 - middleLine;
           if (uponTheMiddleline < 0) {
             //Content is short
             var abs = Math.abs(uponTheMiddleline);
@@ -257,14 +367,6 @@ define(['dojo/_base/declare',
             //Content too long
             html.setStyle(this.customContentNode, 'marginTop', contentMarginTop + 'px');
           }
-        }
-
-        var isNeedLimitCustomContentHeight = (customContentScrollheight >= contentSpace);
-        if (true === isNeedLimitCustomContentHeight || window.appInfo.isRunInMobile) {
-          //limit the customContent height   OR   extend height in mobile
-          html.setStyle(this.customContentNode, 'height', (contentSpace - contentMarginButtom) + 'px');
-        } else {
-          html.setStyle(this.customContentNode, 'height', 'auto');
         }
       },
       onCheckBoxClick: function() {
@@ -276,6 +378,7 @@ define(['dojo/_base/declare',
             html.addClass(this.okNode, 'disable-btn');
             html.removeClass(this.okNode, 'enable-btn');
           }
+          this._setOkNodeAriaLabel();
         }
       },
 
@@ -287,7 +390,7 @@ define(['dojo/_base/declare',
         var isFirstKey = this._getCookieKey();
         if (this._requireConfirm) {
           if (this.confirmCheck.getValue()) {
-            if (TokenUtils.isInConfigOrPreviewWindow() || this._confirmEverytime) {
+            if (utils.isInConfigOrPreviewWindow() || this._confirmEverytime) {
               cookie(isFirstKey, null, {expires: -1});
             } else {
               cookie(isFirstKey, false, {
@@ -299,7 +402,7 @@ define(['dojo/_base/declare',
           }
         } else {
           if (this._showOption) {
-            if (!TokenUtils.isInConfigOrPreviewWindow() && this.confirmCheck.getValue()) {
+            if (!utils.isInConfigOrPreviewWindow() && this.confirmCheck.getValue()) {
               cookie(isFirstKey, false, {
                 expires: 1000,
                 path: '/'
@@ -311,9 +414,20 @@ define(['dojo/_base/declare',
           this.close();
         }
       },
+      onOkKeydown: function(evt){
+        if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+          this.onOkClick();
+          if(!this._requireConfirm || (this._requireConfirm && this.confirmCheck.getValue())){
+            utils.focusOnFirstSkipLink();
+          }else{
+            evt.preventDefault();
+          }
+        }
+      },
 
       close: function() {
         this._isClosed = true;
+        this._eventHide();
         this.widgetManager.closeWidget(this);
       },
 
@@ -371,13 +485,22 @@ define(['dojo/_base/declare',
           def.resolve();
           return def;
         }
-      }//,
+      },
       // _setWhiteColorTextForOldVersion: function() {
       //   html.setStyle(this.customContentNode, 'color', "#fff");
       // },
       // _restoreTextColorForNormal: function() {
       //   html.setStyle(this.customContentNode, 'color', "#000");
       // }
+      //event for AppStatePopup
+      _eventShow: function () {
+        setTimeout(lang.hitch(this, function(){
+          topic.publish('splashPopupShow');
+        }), 800);// becauseof MapManager._checkAppState setTimeout 500;
+      },
+      _eventHide: function () {
+        topic.publish('splashPopupHide');
+      }
     });
     return clazz;
   });

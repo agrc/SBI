@@ -2,20 +2,28 @@
   "theme": {
     "name": "LaunchpadTheme",
     "styles": [
-      "default",
+      "style3",
       "style2",
-      "style3"
+      "default"
     ],
-    "version": "2.2"
+    "version": "2.18",
+    "sharedTheme": {
+      "isPortalSupport": true,
+      "useHeader": false,
+      "useLogo": false
+    },
+    "customStyles": {
+      "mainBackgroundColor": "#696969"
+    }
   },
-  "portalUrl": "http://utah.maps.arcgis.com",
+  "portalUrl": "https://utah.maps.arcgis.com",
   "appId": "",
   "authorizedCrossOriginDomains": [],
   "title": "SBI",
-  "subtitle": "Operations Coordination",
+  "subtitle": "State Bureau of Investigation",
   "keepAppState": false,
-  "logo": "images/logo.png",
-  "geometryService": "http://utility.arcgisonline.com/arcgis/rest/services/Geometry/GeometryServer",
+  "logo": "images/app-logo.png",
+  "geometryService": "https://utility.arcgisonline.com/arcgis/rest/services/Geometry/GeometryServer",
   "links": [],
   "widgetOnScreen": {
     "widgets": [
@@ -27,8 +35,8 @@
           "relativeTo": "map",
           "zIndex": 0
         },
-        "version": "2.2",
-        "id": "themes_LaunchpadTheme_widgets_AnchorBarController_Widget_18",
+        "version": "2.18",
+        "id": "themes_LaunchpadTheme_widgets_AnchorBarController_Widget_20",
         "name": "AnchorBarController"
       },
       {
@@ -40,23 +48,23 @@
           "height": 46,
           "relativeTo": "map"
         },
-        "version": "2.2",
-        "id": "themes_LaunchpadTheme_widgets_Header_Widget_19",
+        "version": "2.18",
+        "id": "themes_LaunchpadTheme_widgets_Header_Widget_21",
         "name": "Header"
       },
       {
         "uri": "widgets/Search/Widget",
         "position": {
-          "left": 10,
-          "top": 10,
-          "right": 10,
-          "zIndex": 0,
+          "left": 350,
+          "top": 25,
+          "width": 300,
+          "zIndex": 1,
           "relativeTo": "map"
         },
-        "version": "2.2",
-        "id": "widgets_Search_Widget_20",
+        "version": "2.18",
+        "id": "widgets_Search_Widget_22",
         "name": "Search",
-        "config": "configs/Search/config_Search.json",
+        "config": "configs/Search/config_widgets_Search_Widget_22.json",
         "visible": false
       },
       {
@@ -66,10 +74,10 @@
           "top": 20,
           "relativeTo": "map"
         },
-        "version": "2.2",
-        "id": "widgets_OverviewMap_Widget_21",
+        "version": "2.18",
+        "id": "widgets_OverviewMap_Widget_23",
         "name": "OverviewMap",
-        "config": "configs/OverviewMap/config_OverviewMap.json",
+        "config": "configs/OverviewMap/config_widgets_OverviewMap_Widget_23.json",
         "visible": false
       },
       {
@@ -79,8 +87,8 @@
           "top": 95,
           "relativeTo": "map"
         },
-        "version": "2.2",
-        "id": "widgets_ZoomSlider_Widget_22",
+        "version": "2.18",
+        "id": "widgets_ZoomSlider_Widget_24",
         "name": "ZoomSlider"
       },
       {
@@ -90,9 +98,9 @@
           "top": 175,
           "relativeTo": "map"
         },
-        "id": "widgets_HomeButton_Widget_23",
+        "id": "widgets_HomeButton_Widget_25",
         "name": "HomeButton",
-        "version": "2.2"
+        "version": "2.18"
       },
       {
         "uri": "widgets/MyLocation/Widget",
@@ -101,22 +109,24 @@
           "top": 215,
           "relativeTo": "map"
         },
-        "version": "2.2",
-        "id": "widgets_MyLocation_Widget_24",
+        "version": "2.18",
+        "id": "widgets_MyLocation_Widget_26",
         "name": "MyLocation"
       },
       {
-        "uri": "",
-        "version": "2.0.1.1",
+        "uri": "widgets/LayerList/Widget",
+        "version": "2.18",
         "position": {
           "right": 20,
           "bottom": 80,
           "relativeTo": "map"
         },
         "closeable": true,
-        "id": "widgets_AttributeTable_Widget_25",
-        "placeholderIndex": 1,
-        "openAtStart": false
+        "id": "widgets_AttributeTable_Widget_27",
+        "name": "LayerList",
+        "label": "SBI Layers",
+        "config": "configs/LayerList/config_widgets_AttributeTable_Widget_27.json",
+        "placeholderIndex": 1
       },
       {
         "uri": "widgets/Coordinate/Widget",
@@ -125,9 +135,9 @@
           "bottom": 60,
           "relativeTo": "map"
         },
-        "id": "widgets_Coordinate_Widget_26",
+        "id": "widgets_Coordinate_Widget_28",
         "name": "Coordinate",
-        "version": "2.2"
+        "version": "2.18"
       },
       {
         "uri": "widgets/Scalebar/Widget",
@@ -136,8 +146,8 @@
           "bottom": 25,
           "relativeTo": "map"
         },
-        "version": "2.2",
-        "id": "widgets_Scalebar_Widget_27",
+        "version": "2.18",
+        "id": "widgets_Scalebar_Widget_29",
         "name": "Scalebar"
       },
       {
@@ -146,45 +156,63 @@
         "position": {
           "relativeTo": "browser"
         },
-        "version": "2.2",
-        "id": "widgets_Splash_Widget_28",
+        "version": "2.18",
+        "id": "widgets_Splash_Widget_30",
         "name": "Splash"
       },
       {
         "position": {
-          "right": 20,
-          "top": 100,
+          "right": 130,
+          "top": 20,
           "relativeTo": "map"
         },
-        "placeholderIndex": 2,
-        "id": "_29",
-        "name": "LayerList",
-        "version": "2.2",
-        "uri": "widgets/LayerList/Widget",
-        "config": "configs/LayerList/config_LayerList.json"
+        "placeholderIndex": 1,
+        "id": "_31",
+        "version": "1.0.0",
+        "closeable": true,
+        "uri": ""
       },
       {
         "position": {
-          "right": 20,
-          "top": 150,
+          "right": 180,
+          "top": 20,
           "relativeTo": "map"
         },
         "placeholderIndex": 2,
-        "id": "_30",
-        "name": "Identify",
-        "version": "2.0.1.1",
-        "IsController": false,
-        "uri": "widgets/Identify/Widget",
-        "config": "configs/Identify/config_Identify.json"
+        "id": "_32"
       },
       {
         "position": {
-          "right": 20,
-          "top": 200,
+          "right": 230,
+          "top": 20,
           "relativeTo": "map"
         },
-        "placeholderIndex": 2,
-        "id": "_31"
+        "placeholderIndex": 3,
+        "id": "_33"
+      },
+      {
+        "uri": "widgets/ExtentNavigate/Widget",
+        "visible": false,
+        "position": {
+          "top": 255,
+          "left": 25,
+          "relativeTo": "map"
+        },
+        "version": "2.18",
+        "id": "widgets_ExtentNavigate_Widget_34",
+        "name": "ExtentNavigate"
+      },
+      {
+        "uri": "widgets/FullScreen/Widget",
+        "visible": false,
+        "position": {
+          "right": 70,
+          "top": 20,
+          "relativeTo": "map"
+        },
+        "version": "2.18",
+        "id": "widgets_FullScreen_Widget_35",
+        "name": "FullScreen"
       }
     ],
     "panel": {
@@ -206,17 +234,20 @@
     "itemId": "c3c3b5c993324c3fb69bb3837a7b784d",
     "mapOptions": {
       "extent": {
-        "xmin": -12880225.117484918,
-        "ymin": 4326111.866297769,
-        "xmax": -11960534.793158596,
-        "ymax": 5199328.4774267515,
+        "xmin": -12990616.360404387,
+        "ymin": 4250167.336342098,
+        "xmax": -11785968.79463121,
+        "ymax": 5224892.321033694,
         "spatialReference": {
           "wkid": 102100
         }
       }
     },
     "id": "map",
-    "portalUrl": "http://utah.maps.arcgis.com"
+    "portalUrl": "https://utah.maps.arcgis.com",
+    "mapRefreshInterval": {
+      "useWebMapRefreshInterval": true
+    }
   },
   "widgetPool": {
     "panel": {
@@ -231,9 +262,9 @@
         "version": "1.0.0",
         "IsController": false,
         "uri": "widgets/SBILocate/Widget",
-        "config": "configs/SBILocate/config_SBILocate.json",
+        "config": "configs/SBILocate/config_widgets_SBILocate_Widget_36.json",
         "index": 3,
-        "id": "widgets_SBILocate_Widget_32"
+        "id": "widgets_SBILocate_Widget_36"
       }
     ],
     "groups": []
@@ -250,7 +281,7 @@
             "zIndex": 0,
             "relativeTo": "map"
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "uri": "themes/LaunchpadTheme/widgets/Header/Widget",
@@ -261,7 +292,7 @@
             "height": 46,
             "relativeTo": "map"
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "uri": "widgets/Search/Widget",
@@ -272,16 +303,15 @@
             "zIndex": 0,
             "relativeTo": "map"
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "uri": "widgets/OverviewMap/Widget",
           "position": {
             "right": 20,
-            "top": 20,
-            "relativeTo": "map"
+            "top": 20
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "uri": "widgets/ZoomSlider/Widget",
@@ -290,7 +320,7 @@
             "bottom": 160,
             "relativeTo": "map"
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "uri": "widgets/HomeButton/Widget",
@@ -308,11 +338,11 @@
             "bottom": 115,
             "relativeTo": "map"
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "uri": "widgets/AttributeTable/Widget",
-          "version": "2.2",
+          "version": "2.18",
           "position": {
             "left": 10,
             "bottom": 70,
@@ -324,8 +354,7 @@
           "uri": "widgets/Coordinate/Widget",
           "position": {
             "left": 20,
-            "bottom": 60,
-            "relativeTo": "map"
+            "bottom": 60
           }
         },
         {
@@ -335,7 +364,7 @@
             "bottom": 70,
             "relativeTo": "map"
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "uri": "widgets/Splash/Widget",
@@ -343,7 +372,7 @@
           "position": {
             "relativeTo": "browser"
           },
-          "version": "2.2"
+          "version": "2.18"
         },
         {
           "position": {
@@ -365,6 +394,25 @@
             "bottom": 115,
             "relativeTo": "map"
           }
+        },
+        {
+          "uri": "widgets/ExtentNavigate/Widget",
+          "visible": false,
+          "position": {
+            "right": 10,
+            "bottom": 238,
+            "relativeTo": "map"
+          },
+          "version": "2.18"
+        },
+        {
+          "uri": "widgets/FullScreen/Widget",
+          "visible": false,
+          "position": {
+            "right": 70,
+            "top": 20
+          },
+          "version": "2.18"
         }
       ]
     },
@@ -383,7 +431,7 @@
     }
   },
   "loadingPage": {
-    "backgroundColor": "#888f96",
+    "backgroundColor": "#757575",
     "backgroundImage": {
       "visible": false
     },
@@ -394,11 +442,17 @@
       "height": 58
     }
   },
-  "wabVersion": "2.2",
+  "wabVersion": "2.18",
   "isTemplateApp": true,
   "isWebTier": false,
   "httpProxy": {
     "useProxy": true,
-    "url": "/proxy.js"
+    "alwaysUseProxy": false,
+    "url": "",
+    "rules": []
+  },
+  "dataSource": {
+    "dataSources": {},
+    "settings": {}
   }
 }

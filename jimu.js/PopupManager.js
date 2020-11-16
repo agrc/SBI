@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2015 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,17 @@ define([
   'dojo/_base/declare',
   'dojo/_base/lang',
   'dojo/_base/html',
+  'dojo/Deferred',
   'dojo/topic',
   'dojo/on',
   'dojo/query',
   './FeatureActionManager',
   './utils',
-  './dijit/PopupMenu'
-  ], function(declare, lang, html, topic, on, query, FeatureActionManager, jimuUtils, PopupMenu) {
+  './dijit/FeatureActionPopupMenu',
+  './RelatedRecordsPopupProjector',
+  './LayerInfos/LayerInfos'
+  ], function(declare, lang, html, Deferred, topic, on, query, FeatureActionManager,
+  jimuUtils, PopupMenu, RelatedRecordsPopupProjector, LayerInfos) {
     var instance = null;
     var clazz = declare(null, {
       mapManager: null,
@@ -32,6 +36,7 @@ define([
       //   bigScreen: is popup of map
       // };
       popupUnion: null,
+      _relatedRecordsPopupProjector: null,
 
       constructor: function(options) {
         lang.mixin(this, options);
@@ -60,11 +65,18 @@ define([
       },
 
       _createPopupMenuButton: function(){
+        if(this.popupMenuButtonDesktop) {
+          html.destroy(this.popupMenuButtonDesktop);
+        }
+        if(this.popupMenuButtonMobile) {
+          html.destroy(this.popupMenuButtonMobile);
+        }
         this.popupMenuButtonDesktop = html.create('span', {
           'class': 'popup-menu-button'
         }, query(".actionList", this.popupUnion.bigScreen.domNode)[0]);
 
-        var mobileActionListNode = query(".esriMobilePopupInfoView .esriMobileInfoViewItem").parent()[0];
+        var mobileActionListNode =
+          query("div.esriMobileInfoView.esriMobilePopupInfoView .esriMobileInfoViewItem").parent()[0];
         var mobileViewItem = html.create('div', {
             'class': 'esriMobileInfoViewItem'
           }, mobileActionListNode);
@@ -78,6 +90,9 @@ define([
 
       _onPopupMenuButtonClick: function(evt){
         var position = html.position(evt.target);
+        if(this.menuActionsOfSelectedFeature) {
+          this.popupMenu.setActions(this.menuActionsOfSelectedFeature);
+        }
         this.popupMenu.show(position);
       },
 
@@ -89,31 +104,72 @@ define([
       _onSelectionChange: function(evt){
         this.selectedFeature = evt.target.getSelectedFeature();
         if(!this.selectedFeature){
-          html.addClass(this.popupMenuButtonDesktop, 'disabled');
-          html.addClass(this.popupMenuButtonMobile, 'disabled');
+          this._disablePopupMenu();
           return;
         }
-        this._initPopupMenu();
+        this.initPopupMenu([this.selectedFeature]);
+
+        var selectedFeatureLayer = this.selectedFeature.getLayer();
+        var hasInfoTemplate = this.selectedFeature.infoTemplate ||
+                              (selectedFeatureLayer && selectedFeatureLayer.infoTemplate);
+        if(hasInfoTemplate) {
+          this._createRelatedRecordsPopupProjector(this.selectedFeature);
+        }
       },
 
-      _initPopupMenu: function(){
-        this.featureActionManager.getSupportedActions(this.selectedFeature).then(lang.hitch(this, function(actions){
-          var popupActions = actions.filter(lang.hitch(this, function(action){
-            return ['ZoomTo', 'ShowPopup', 'Flash'].indexOf(action.name) < 0 ;
-          }));
+      _disablePopupMenu: function() {
+        html.addClass(this.popupMenuButtonDesktop, 'disabled');
+        html.addClass(this.popupMenuButtonMobile, 'disabled');
+      },
 
-          if(popupActions.length === 0){
-            html.addClass(this.popupMenuButtonDesktop, 'disabled');
-            html.addClass(this.popupMenuButtonMobile, 'disabled');
-          }else{
-            html.removeClass(this.popupMenuButtonDesktop, 'disabled');
-            html.removeClass(this.popupMenuButtonMobile, 'disabled');
-          }
-          var menuActions = popupActions.map(lang.hitch(this, function(action){
-            action.data = jimuUtils.toFeatureSet(this.selectedFeature);
-            return action;
+      _enablePopupMenu: function() {
+        html.removeClass(this.popupMenuButtonDesktop, 'disabled');
+        html.removeClass(this.popupMenuButtonMobile, 'disabled');
+      },
+
+      convertFeatures: function(features) {
+        var def = new Deferred();
+        var layerInfos = LayerInfos.getInstanceSync();
+        var featureLayer = features && features[0] && features[0].getLayer();
+        var layerInfo = layerInfos.getLayerInfoById(featureLayer && featureLayer.id);
+        if(layerInfo) {
+          def = layerInfo.getMSShipFeatures(features);
+        } else {
+          def.resolve(null);
+        }
+        return def;
+      },
+
+      // public method, can be called from outside.
+      initPopupMenu: function(features){
+        if(!features) {
+          this._disablePopupMenu();
+          this.popupMenu.setActions([]);
+          return;
+        }
+        this.convertFeatures(features).then(lang.hitch(this, function(msShipFeatures) {
+          var featureSet = jimuUtils.toFeatureSet(msShipFeatures || features);
+          this.featureActionManager.getSupportedActions(featureSet).then(lang.hitch(this, function(actions){
+            var excludeActions = ['ZoomTo', 'ShowPopup', 'Flash', 'ExportToCSV',
+              'ExportToFeatureCollection', 'ExportToGeoJSON', 'ShowRelatedRecords',
+              'SaveToMyContent', 'CreateLayer'];
+            var popupActions = actions.filter(lang.hitch(this, function(action){
+              return excludeActions.indexOf(action.name) < 0 ;
+            }));
+
+            if(popupActions.length === 0){
+              this._disablePopupMenu();
+            }else{
+              this._enablePopupMenu();
+            }
+            var menuActions = popupActions.map(lang.hitch(this, function(action){
+              //action.data = jimuUtils.toFeatureSet(feature);
+              action.data = featureSet;
+              return action;
+            }));
+            this.menuActionsOfSelectedFeature = menuActions;
+            this.popupMenu.setActions(menuActions);
           }));
-          this.popupMenu.setActions(menuActions);
         }));
       },
 
@@ -141,7 +197,31 @@ define([
       _onWidgetsActionsRegistered: function(){
         //to init actions
         this.init();
+      },
+
+      /**********************************
+       * Methods for show related records
+       **********************************/
+
+      _createRelatedRecordsPopupProjector: function(selectedFeature) {
+        try {
+          if(this._relatedRecordsPopupProjector &&
+             this._relatedRecordsPopupProjector.domNode) {
+            this._relatedRecordsPopupProjector.destroy();
+            this._relatedRecordsPopupProjector = null;
+          }
+          //var refDomNode = query(".esriViewPopup", this.popupUnion.bigScreen.domNode)[0];
+          this._relatedRecordsPopupProjector = new RelatedRecordsPopupProjector({
+            originalFeature: selectedFeature,
+            //refDomNode: refDomNode,
+            popup: this.mapManager.map.infoWindow,
+            popupManager: this
+          });
+        } catch(err) {
+          console.warn(err.message);
+        }
       }
+
 
     });
 

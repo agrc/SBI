@@ -7,8 +7,8 @@
     <div class="title-label" data-dojo-attach-point="titleLabelNode">
       ${config.label}
     </div>
-    <div class="close-icon jimu-float-trailing" data-dojo-attach-point="closeNode"
-         data-dojo-attach-event="onclick:_onCloseBtnClicked"></div>
+    <div role="button" tabindex="0" aria-label="${headerNls.closeWindow}" class="close-icon jimu-float-trailing" data-dojo-attach-point="closeNode"
+      data-dojo-attach-event="onclick:_onCloseBtnClicked,onkeydown:_onCloseBtnKeydown"></div>
   </div>
   <div class="jimu-panel-content jimu-corner-bottom" data-dojo-attach-point="containerNode"></div>
 </div>

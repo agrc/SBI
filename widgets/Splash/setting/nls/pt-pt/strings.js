@@ -10,9 +10,9 @@ define({
   "confirmOption": "Exibir este ecrã inicial sempre que a aplicação for iniciada.",
   "backgroundColor": "Cor de Fundo",
   "content": "Conteúdo",
-  "contentDescription": "Definir o conteúdo que é exibido no ecrã inicial",
+  "contentDescription": "Defina o conteúdo que é exibido no ecrã inicial.",
   "appearance": "Aspeto",
-  "appearanceDescription": "Definir a aparência do ecrã inicial",
+  "appearanceDescription": "Defina a aparência do ecrã inicial.",
   "size": "Dimensão",
   "width": "Largura",
   "height": "Altura",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Preenchimento de imagem",
   "chooseFile": "Escolher ficheiro",
   "noFileChosen": "Nenhum ficheiro escolhido",
-  "transparency": "Transparência",
   "sizeFill": "Preenchimento",
   "sizeFit": "Adaptar",
   "sizeStretch": "Esticar para preencher",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Cor do botão",
   "buttonText": "Texto do botão",
   "buttonTextColor": "Cor do texto do botão",
+  "contentAlign": "Alinhamento de conteúdo",
+  "alignTop": "Superior",
+  "alignMiddle": "Meio",
   "maskColor": "Cor da máscara",
   "options": "Opções",
-  "optionsDescription": "Definir o comportamento do ecrã inicial"
+  "optionsDescription": "Defina o comportamento do ecrã inicial."
 });

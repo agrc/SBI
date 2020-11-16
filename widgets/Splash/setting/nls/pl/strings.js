@@ -10,9 +10,9 @@ define({
   "confirmOption": "Pokazuj ten ekran powitalny przy każdorazowym uruchomieniu aplikacji",
   "backgroundColor": "Kolor tła",
   "content": "Zawartość",
-  "contentDescription": "Zdefiniuj zawartość wyświetlaną na ekranie powitalnym",
+  "contentDescription": "Zdefiniuj zawartość wyświetlaną na ekranie powitalnym.",
   "appearance": "Wygląd",
-  "appearanceDescription": "Ustaw wygląd ekranu powitalnego",
+  "appearanceDescription": "Skonfiguruj wygląd ekranu powitalnego.",
   "size": "Rozmiar",
   "width": "Szerokość",
   "height": "Wysokość",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Wypełnienie obrazem",
   "chooseFile": "Wybierz plik",
   "noFileChosen": "Nie wybrano pliku",
-  "transparency": "Przezroczystość",
   "sizeFill": "Wypełnienie",
   "sizeFit": "Dopasuj",
   "sizeStretch": "Rozciągnij, aby wypełnić",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Kolor przycisku",
   "buttonText": "Tekst przycisku",
   "buttonTextColor": "Kolor tekstu przycisku",
+  "contentAlign": "Wyrównanie zawartości",
+  "alignTop": "Góra",
+  "alignMiddle": "Na środku",
   "maskColor": "Kolor maski",
   "options": "Opcje",
-  "optionsDescription": "Ustaw zachowanie ekranu powitalnego"
+  "optionsDescription": "Ustaw zachowanie ekranu powitalnego."
 });

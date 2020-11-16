@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 define(["libs/usng/usng"], function(usng) {
 
   var theClass = {
-
+  
     /**
      * Looks up an MGRS or USNG string and returns a result object with text,
      * latitude, and longitude properties, or null if the string is not a valid

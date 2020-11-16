@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,10 +30,11 @@ define([
   'esri/tasks/query',
   'esri/tasks/QueryTask',
   'esri/layers/FeatureLayer',
-  'esri/symbols/jsonUtils'
+  'esri/symbols/jsonUtils',
+  'esri/geometry/geometryEngine'
 ],
 function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUtils, SelectionManager,
-  LayerInfos, Graphic, EsriQuery, QueryTask, FeatureLayer, symbolJsonUtils) {
+  LayerInfos, Graphic, EsriQuery, QueryTask, FeatureLayer, symbolJsonUtils, geometryEngine) {
 
   return declare([Evented], {
     baseClass: 'jimu-featureset-chooser-core',
@@ -44,6 +45,7 @@ function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUt
     _handles: null,
     selectionManager: null,
     layerInfosObj: null,
+    layerInfo: null,
 
     //constructor options:
     map: null,
@@ -110,13 +112,11 @@ function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUt
       var handle2 = on(this.drawBox, 'draw-end', lang.hitch(this, this._onDrawEnd));
       this._handles = [handle1, handle2];
 
-      // this.own(on(this.featureLayer, 'visibility-change', lang.hitch(this, function(){
-      //   if(this.featureLayer.visible){
-      //     this.drawBox.enable();
-      //   }else{
-      //     this.drawBox.disable();
-      //   }
-      // })));
+      this.layerInfo = this.layerInfosObj.getLayerInfoById(this.featureLayer.id);
+      if (this.layerInfo) {
+        var handle3 = on(this.layerInfo, 'filterChanged', lang.hitch(this, this._handleFilterChange));
+        this._handles.push(handle3);
+      }
     },
 
     //private method
@@ -208,7 +208,7 @@ function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUt
     },
 
     _onDrawEnd: function(g, geotype, commontype, shiftKey, ctrlKey, metaKey){
-      console.log(geotype, commontype);
+      /*jshint unused: false*/
       if(this.isLoading()){
         //should throw exception here
         throw "should not draw when loading";
@@ -237,7 +237,7 @@ function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUt
         }
       }
 
-      this._onLoading();
+      this.emit('loading');
 
       this._getFeaturesByGeometry(g.geometry).then(lang.hitch(this, function(features){
         var layer = this.updateSelection ? this.featureLayer : this._middleFeatureLayer;
@@ -251,10 +251,20 @@ function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUt
       }));
     },
 
+    _addTolerance: function(geometry) {
+      // Add tolorence of 10px based on current map scale, use fixed dpi 96
+      var resolution = this.map.getScale() * 2.54 / 9600; // meters of each pixel
+      return geometryEngine.buffer(geometry, 10 * resolution, 'meters');
+    },
+
     _getFeaturesByGeometry: function(geometry){
+      if ((geometry.type === 'point' || geometry.type === 'polyline') &&
+        this.featureLayer.geometryType === 'esriGeometryPoint') {
+        geometry = this._addTolerance(geometry);
+      }
       var def = new Deferred();
       var features = [];
-      if(this.featureLayer.getMap()){
+      if(this.featureLayer.getMap() && this.featureLayer.mode !== FeatureLayer.MODE_SELECTION){
         //layer is a normal FeatureLayer or a FeatureCollection
         var graphics = this.selectionManager.getClientFeaturesByGeometry(this.featureLayer, geometry, this.fullyWithin);
         //we should copy features
@@ -265,18 +275,22 @@ function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUt
         }
         def.resolve(features);
       }else{
-        //layer is a virtual FeatureLayer under MapService
+        //layer is a virtual FeatureLayer under MapService, this._middleFeatureLayer
         var queryParams = new EsriQuery();
         queryParams.geometry = geometry;
         queryParams.outSpatialReference = this.map.spatialReference;
         queryParams.returnGeometry = true;
+        if(this.fullyWithin){
+          queryParams.spatialRelationship = EsriQuery.SPATIAL_REL_CONTAINS;
+        }else{
+          queryParams.spatialRelationship = EsriQuery.SPATIAL_REL_INTERSECTS;
+        }
         var where = this.featureLayer.getDefinitionExpression();
         if(!where){
           where = "1=1";
         }
-        var layerInfo = this.layerInfosObj.getLayerInfoById(this.featureLayer.id);
-        if(layerInfo){
-          var filter = layerInfo.getFilter();
+        if(this.layerInfo){
+          var filter = this.layerInfo.getFilter();
           if(filter){
             where = "(" + where + ") AND (" + filter + ")";
           }
@@ -305,6 +319,38 @@ function(on, sniff, Evented, Deferred, lang, array, declare, jimuUtils, symbolUt
       if(this._middleFeatureLayer){
         this._middleFeatureLayer.clear();
         this.selectionManager.clearSelection(this._middleFeatureLayer);
+      }
+    },
+
+    _handleFilterChange: function() {
+      var newFilter = this.layerInfo.getFilter() || '1=1';
+      var selectedFeatures = this.featureLayer.getSelectedFeatures();
+      var objectIdField = this.featureLayer.objectIdField;
+
+      if (selectedFeatures && selectedFeatures.length > 0) { // apply filter to the selection
+        var idArray = array.map(selectedFeatures, function(feature) {
+          return feature.attributes[objectIdField];
+        });
+        var queryParams = new EsriQuery();
+        queryParams.where = objectIdField + ' in (' + idArray.join(',') + ') AND ' + newFilter;
+        var queryTask = new QueryTask(this.featureLayer.url);
+        queryTask.executeForIds(queryParams).then(lang.hitch(this, function(filterIds){
+          array.forEach(selectedFeatures, function(feature) {
+            if (filterIds.indexOf(feature.attributes[objectIdField]) >= 0) {
+              feature.show();
+            } else {
+              feature.hide();
+            }
+          });
+          if (this.selectionManager._isLayerNeedDisplayLayer(this.featureLayer)) {
+            this.selectionManager._updateDisplayLayer(this.featureLayer, selectedFeatures, FeatureLayer.SELECTION_NEW);
+          }
+          this.featureLayer.emit('selection-complete', {
+            features: this.featureLayer.getSelectedFeatures()
+          });
+        }), lang.hitch(this, function(err){
+          console.error(err);
+        }));
       }
     },
 

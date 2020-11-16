@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,30 +14,33 @@
 // limitations under the License.
 ///////////////////////////////////////////////////////////////////////////
 
-define(['dojo/_base/declare',
+define([
+  'dojo/_base/declare',
   'dojo/_base/lang',
   'dojo/_base/array',
   'dojo/_base/html',
   'dojo/on',
+  'dojo/keys',
   'dojo/Evented',
   'dojo/query',
   'dijit/_WidgetBase',
   'dijit/_TemplatedMixin',
   'dojo/text!./templates/TabContainer3.html',
-  'jimu/dijit/ViewStack'
+  'jimu/dijit/ViewStack',
+  'jimu/utils'
 ],
-function(declare, lang, array, html, on, Evented, query,
-  _WidgetBase, _TemplatedMixin, template, ViewStack){
+function(declare, lang, array, html, on, keys, Evented, query,
+  _WidgetBase, _TemplatedMixin, template, ViewStack, jimuUtils){
   return declare([_WidgetBase, _TemplatedMixin, Evented], {
     templateString: template,
-    selected:'',
-    tabs:null,
-    average:false,
-
     'baseClass':'jimu-tab3',
     declaredClass: 'jimu.dijit.TabContainer3',
-
     _currentIndex: -1,
+
+    //options:
+    selected: '',
+    tabs: null,//[{title,content}]
+    average: true,
 
     //public methods:
     //selectTab
@@ -60,16 +63,18 @@ function(declare, lang, array, html, on, Evented, query,
     },
 
     selectTab: function(title){
-      var tds = query('td', this.tabTr);
-      array.forEach(tds, lang.hitch(this, function(td, index) {
+      // var tds = query('td', this.tabTr);
+      array.forEach(this.tabItems, lang.hitch(this, function(td, index) {
         html.removeClass(td, 'jimu-state-active');
+        html.setAttr(td, 'tabindex', '-1');
         if (td.label === title) {
           html.addClass(td, 'jimu-state-active');
+          html.setAttr(td, 'tabindex', '0');
           this._currentIndex = index;
         }
       }));
-      this.controlNode.removeChild(this.controlTable);
-      html.place(this.controlTable, this.controlNode);
+      // this.controlNode.removeChild(this.controlTable);
+      // html.place(this.controlTable, this.controlNode);
       this.viewStack.switchView(title);
       this.emit('tabChanged', title);
     },
@@ -95,11 +100,15 @@ function(declare, lang, array, html, on, Evented, query,
       this._createTab(tabConfig);
 
       if(!this.average){
-        var strTabItemTd = '<td nowrap class="tab-item-td" style="border-bottom:1px solid #ccc;">' +
-        '<div class="tab-item-div"></div></td>';
-        var tabItemTd = html.toDom(strTabItemTd);
-        html.place(tabItemTd, this.tabTr);
+        this._addEmptyTab();
       }
+    },
+
+    _addEmptyTab: function(){
+      var strTabItemTd = '<td nowrap class="tab-item-td tab-item-td-empty" style="border-bottom:1px solid #ccc;">' +
+      '<div class="tab-item-div"></div></td>';
+      var tabItemTd = html.toDom(strTabItemTd);
+      html.place(tabItemTd, this.tabTr);
     },
 
     removeTab: function(title){
@@ -115,17 +124,13 @@ function(declare, lang, array, html, on, Evented, query,
         //remove from this.tabs
         var removedTab = this.tabs.splice(idx, 1)[0];
         //remove from this.tabTr
-        var tdItems = query('td', this.tabTr);
-        var tdToRemove;
-        var tdSelected = array.some(tdItems, function(tdItem){
+        array.some(this.tabItems, function(tdItem, index){
           if(tdItem.label === title){
-            tdToRemove = tdItem;
+            this.tabItems.splice(index, 1);
+            html.destroy(tdItem);
             return true;
           }
-        });
-        if(tdSelected){
-          html.destroy(tdToRemove);
-        }
+        }, this);
         //remove from this.viewStack
         this.viewStack.removeView(removedTab.content);
       }
@@ -149,17 +154,44 @@ function(declare, lang, array, html, on, Evented, query,
 
     _initSelf:function(){
       this.viewStack = new ViewStack(null, this.containerNode);
+      this.own(on(this.containerNode, 'keydown', lang.hitch(this, function(evt){
+        if(evt.keyCode === keys.ESCAPE){
+          evt.stopPropagation();
+          this.tabItems[this._currentIndex].focus();
+        }
+      })));
+
+      this.tabItems = [];
       array.forEach(this.tabs, function(tabConfig){
         this._createTab(tabConfig);
       }, this);
+
+      this.own(on(this.tabTr, 'keydown', lang.hitch(this, function(evt){
+        var currentTab = evt.target;
+        var nextItem;
+        if(evt.keyCode === keys.RIGHT_ARROW){
+          nextItem = currentTab.nextElementSibling ?
+            (!this.average && html.hasClass(currentTab.nextElementSibling, 'tab-item-td-empty') ?
+              this.tabItems[0] : currentTab.nextElementSibling) : this.tabItems[0];
+        }else if(evt.keyCode === keys.LEFT_ARROW){
+          nextItem = currentTab.previousElementSibling ?
+            currentTab.previousElementSibling : this.tabItems[this.tabItems.length - 1];
+        }else if(evt.keyCode === keys.HOME){
+          nextItem = this.tabItems[0];
+        }else if(evt.keyCode === keys.END){
+          nextItem = this.tabItems[this.tabItems.length - 1];
+        }
+        if(nextItem){
+          currentTab = nextItem;
+          nextItem.focus();
+        }
+      })));
+
       if(this.average){
         this.controlTable.style.tableLayout = 'fixed';
-      }
-      else{
-        var strTabItemTd = '<td nowrap class="tab-item-td" style="border-bottom:1px solid #ccc;">' +
-        '<div class="tab-item-div"></div></td>';
-        var tabItemTd = html.toDom(strTabItemTd);
-        html.place(tabItemTd, this.tabTr);
+        html.addClass(this.domNode, 'average');
+      }else{
+        this._addEmptyTab();
       }
     },
 
@@ -172,16 +204,30 @@ function(declare, lang, array, html, on, Evented, query,
       var strTabItemTd = '<td nowrap class="tab-item-td"><div class="tab-item-div"></div></td>';
       var tabItemTd = html.toDom(strTabItemTd);
       tabItemTd.label = tabConfig.title || '';
+      tabItemTd.title = tabConfig.title;
       html.place(tabItemTd, this.tabTr);
       var tabItemDiv = query('.tab-item-div', tabItemTd)[0];
-      tabItemDiv.innerHTML = tabItemTd.label;
+      tabItemDiv.innerHTML = jimuUtils.sanitizeHTML(tabItemTd.label);
       tabItemDiv.label = tabItemTd.label;
       tabConfig.content.label = tabItemTd.label;
       this.viewStack.addView(tabConfig.content);
-      this.own(on(tabItemTd, 'click', lang.hitch(this, this._onSelect, tabConfig.title)));
+
+      this.own(on(tabItemTd, 'click', lang.hitch(this, function(evt){
+        this._onSelect(tabConfig.title, evt);
+      })));
+      this.own(on(tabItemTd, 'keydown', lang.hitch(this, function(evt){
+        if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+          this._onSelect(tabConfig.title, evt);
+        }
+      })));
+      this.tabItems.push(tabItemTd);
     },
 
-    _onSelect: function(title){
+    _onSelect: function(title, evt){
+      var tabItemTd = evt.target;
+      if(html.hasClass(tabItemTd, 'jimu-state-active')){
+        return;
+      }
       this.selectTab(title);
     }
 

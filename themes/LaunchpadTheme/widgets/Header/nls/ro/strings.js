@@ -1,6 +1,6 @@
 define({
   "_widgetLabel": "Antet",
-  "signin": "Autentificare",
+  "signin": "Conectare",
   "signout": "Deconectare",
   "about": "Despre",
   "signInTo": "Autentificare la",

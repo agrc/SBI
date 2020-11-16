@@ -1,5 +1,5 @@
 define({
-  "_themeLabel": "Palaišanas paneļa dizains",
+  "_themeLabel": "Palaišanas paneļa tēma",
   "_layout_default": "Noklusējuma izkārtojums",
-  "_layout_right": "Pareizs izkārtojums"
+  "_layout_right": "Pareizais izkārtojums"
 });

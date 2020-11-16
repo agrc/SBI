@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ define([
     'dojo/_base/lang',
     'dojo/_base/html',
     'dojo/on',
+    'dojo/keys',
     'dojo/Evented',
     'dojo/Deferred',
     'dijit/popup',
@@ -27,7 +28,8 @@ define([
     'dojo/text!./templates/LayerChooserFromMapWithDropbox.html',
     'jimu/LayerInfos/LayerInfos'
   ],
-  function(declare, lang, html, on, Evented, Deferred, dojoPopup, _WidgetBase, _TemplatedMixin, template, LayerInfos) {
+  function(declare, lang, html, on, keys, Evented, Deferred, dojoPopup,
+    _WidgetBase, _TemplatedMixin, template, LayerInfos) {
 
     return declare([_WidgetBase, _TemplatedMixin, Evented], {
       templateString: template,
@@ -39,6 +41,7 @@ define([
 
       //options:
       layerChooser: null,//instance of LayerChooserFromMap
+      customClass: "",
 
       //public methods:
       //getLayerChooser
@@ -49,15 +52,33 @@ define([
       //events:
       //selection-change
 
+      postMixInProperties: function() {
+        this.inherited(arguments);
+        this.nls = window.jimuNls.queryableLayerSource;
+        this.nls.customSelectLayer = this.label ? this.label : this.nls.selectLayer;
+      },
+
       postCreate: function() {
         this.inherited(arguments);
         this.layerInfosObj = LayerInfos.getInstanceSync();
         this.layerChooser.domNode.style.zIndex = 1;
         this.layerChooser.tree.domNode.style.borderTop = "0";
-        //this.layerChooser.tree.domNode.style.marginTop = "-1px";
+        this.layerChooser.tree.domNode.style.maxHeight = "290px";
         this.own(on(this.layerChooser, 'tree-click', lang.hitch(this, this._onTreeClick)));
         this.own(on(this.layerChooser, 'update', lang.hitch(this, this._onLayerChooserUpdate)));
         this.own(on(document.body, 'click', lang.hitch(this, this._onBodyClicked)));
+        this.own(on(document.body, 'keydown', lang.hitch(this, function(evt){
+          if(evt.keyCode === keys.ENTER){
+            this._onBodyClicked(evt);
+          }
+        })));
+
+        //escape to hide layer chooser
+        this.own(on(this.layerChooser.domNode, 'keydown', lang.hitch(this, function(evt){
+          if(evt.keyCode === keys.ESCAPE){
+            this.hideLayerChooser();
+          }
+        })));
       },
 
       destroy: function(){
@@ -77,7 +98,7 @@ define([
       setSelectedLayer: function(layer){
         var def = new Deferred();
         if (layer) {
-          var layerInfo = this.layerInfosObj.getLayerInfoById(layer.id);
+          var layerInfo = this.layerInfosObj.getLayerOrTableInfoById(layer.id);
           if (layerInfo) {
             this.layerChooser.filter(layerInfo).then(lang.hitch(this, function(success){
               if(success){
@@ -130,7 +151,14 @@ define([
         if(this._isLayerChooserShow){
           this.hideLayerChooser();
         }else{
+          this.isActive = true;
           this.showLayerChooser();
+        }
+      },
+
+      _onDropDownKeydown: function(evt){
+        if(evt.keyCode === keys.ENTER){
+          this._onDropDownClick(evt);
         }
       },
 
@@ -144,7 +172,7 @@ define([
         // if (width < 200) {
         //   width = 200;
         // }
-        this.layerChooser.domNode.style.width = width + 2 + "px";
+        this.layerChooser.domNode.style.minWidth = width + 2 + "px";
 
         dojoPopup.open({
           parent: this,
@@ -155,6 +183,10 @@ define([
         var popupDom = this.layerChooser.domNode.parentNode;
         if (popupDom) {
           html.addClass(popupDom, 'jimu-layer-chooser-from-map-withdropbox-popup');
+          if(this.customClass){
+            html.addClass(popupDom, this.customClass);
+          }
+          this.layerChooser.tree.domNode.focus();
         }
         this._isLayerChooserShow = true;
       },
@@ -162,6 +194,10 @@ define([
       hideLayerChooser: function() {
         dojoPopup.close(this.layerChooser);
         this._isLayerChooserShow = false;
+        if(this.isActive){
+          this.dropDownBtn.focus();
+          this.isActive = false;
+        }
       },
 
       _onLayerChooserUpdate: function(){
@@ -184,6 +220,7 @@ define([
         this.hideLayerChooser();
         var title = lang.getObject("layerInfo.title", false, this._selectedItem) || "";
         this.layerNameNode.innerHTML = title;
+        html.setAttr(this.layerNameNode, 'title', title);
         var layer = lang.getObject("layerInfo.layerObject", false, this._selectedItem);
 
         if(isChanged){

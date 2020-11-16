@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ define(
     'jimu/BaseWidgetSetting',
     'jimu/dijit/CheckBox',
     'dojo/text!./Edit.html',
+    'jimu/utils',
     "jimu/SpatialReference/srUtils",
     'dijit/form/ValidationTextBox',
     'dijit/form/Select'
@@ -35,6 +36,7 @@ define(
     BaseWidgetSetting,
     CheckBox,
     template,
+    jimuUtils,
     utils
   ) {
     var options = [{
@@ -55,6 +57,11 @@ define(
     }, {
       "value": "FOOT",
       "label": "Foot",
+      "selected": false,
+      "disabled": false
+    }, {
+      "value": "FOOT_US",
+      "label": "Foot_US",
       "selected": false,
       "disabled": false
     }, {
@@ -105,6 +112,11 @@ define(
     }, {
       "value": "DECIMAL_DEGREES",
       "label": "Decimal_Degrees",
+      "selected": false,
+      "disabled": false
+    }, {
+      "value": "DEGREES_DECIMAL_MINUTES",
+      "label": "Degrees_Decimal_Minutes",
       "selected": false,
       "disabled": false
     }, {
@@ -171,7 +183,7 @@ define(
             this._adjustUnitOption();
           }
           if (config.label) {
-            this.wkidLabel.innerHTML = config.label;
+            this.wkidLabel.innerHTML = jimuUtils.sanitizeHTML(config.label);
           }
           if (config.outputUnit) {
             this.outputUnit.set('value', config.outputUnit);
@@ -180,7 +192,7 @@ define(
             this.transformationWkid.set('value', parseInt(config.transformationWkid, 10));
           }
           if (config.transformationLabel) {
-            this.transformationLabel.innerHTML = config.transformationLabel;
+            this.transformationLabel.innerHTML = jimuUtils.sanitizeHTML(config.transformationLabel);
           }
           if (config.transformForward) {
             this.transformForward.setValue(config.transformForward);
@@ -211,6 +223,12 @@ define(
           unitRate: utils.getUnitRate(utils.getCSUnit(cs.wkid), cs.outputUnit)
         };
 
+        //for hack DEGREES_DECIMAL_MINUTES
+        if(cs.outputUnit === "DEGREES_DECIMAL_MINUTES"){
+          _options.isGeographicUnit = true;
+          _options.unitRate = 1;
+        }
+
         if (_options.isGeographicUnit && _options.isProjectedCS) { // use spheroidCS unit
           _options.unitRate = 1;
         }
@@ -223,6 +241,7 @@ define(
         array.forEach(utils.getGeographicUnits(), lang.hitch(this, function(unit) {
           this.outputUnit.removeOption(unit);
         }));
+        this.outputUnit.removeOption("DEGREES_DECIMAL_MINUTES");//for hack DEGREES_DECIMAL_MINUTES
       },
 
       _removeProjUnits: function() {
@@ -283,7 +302,7 @@ define(
 
         if (utils.isValidWkid(newWkid)) {
           label = utils.getSRLabel(newWkid);
-          this.wkidLabel.innerHTML = label;
+          this.wkidLabel.innerHTML = jimuUtils.sanitizeHTML(label);
 
           // same spheroid doesn't need transformation
           if (utils.isSameSpheroid(newWkid, this.map.spatialReference.wkid)) {
@@ -318,7 +337,7 @@ define(
           if (utils.isValidTfWkid(newtfWkid)) {
             tfid = newtfWkid;
             label = utils.getTransformationLabel(newtfWkid);
-            this.transformationLabel.innerHTML = label;
+            this.transformationLabel.innerHTML = jimuUtils.sanitizeHTML(label);
 
             html.setStyle(this.transformForward.domNode, "display", "block");
           } else {

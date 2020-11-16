@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,12 +17,16 @@
 define(['dojo/_base/declare',
   'dojo/_base/lang',
   'dojo/_base/array',
+  'dojo/_base/html',
   'dojo/dom-geometry',
   'dojo/dom-style',
   'dojo/dom-class',
   'dojo/dom-construct',
   'dojo/fx',
   'dojo/on',
+  'dojo/keys',
+  'dijit/Tooltip',
+  'jimu/utils',
   'dojo/query',
   'dojo/aspect',
   'jimu/BaseWidget',
@@ -30,8 +34,8 @@ define(['dojo/_base/declare',
   './DockableItem',
   './GroupItems',
   './PopupMoreNodes'
-  ], function(declare, lang, array, domGeometry, domStyle, domClass, domConstruct, coreFx, on,
-  query, aspect, BaseWidget, PoolControllerMixin, DockableItem, GroupItems, PopupMoreNodes){
+  ], function(declare, lang, array, html, domGeometry, domStyle, domClass, domConstruct, coreFx, on, keys,
+  Tooltip, utils, query, aspect, BaseWidget, PoolControllerMixin, DockableItem, GroupItems, PopupMoreNodes){
   /* global jimuConfig*/
   var MIN_MARGIN = 8, ICON_SIZE = 40, ICON_IMG_SIZE = 20, BUTTON_SIZE = 60,
       NORMAL_MODE = 1, MOBILE_MODE = 2;
@@ -51,6 +55,11 @@ define(['dojo/_base/declare',
     openedIds: [],
     currentStyle: 'default',
 
+    constructor: function() {
+      this.previousNls = window.jimuNls.common.previous;
+      this.nextNls = window.jimuNls.common.next;
+    },
+
     postCreate: function(){
       this.inherited(arguments);
 
@@ -63,13 +72,17 @@ define(['dojo/_base/declare',
       array.forEach(this.allConfigs, function(configItem, index){
         this._createItem(configItem, index);
       }, this);
+
+      html.setAttr(this.previousButton, 'tabindex', this.tabIndex);
+      html.setAttr(this.nextButton, 'tabindex', this.tabIndex);
     },
 
     _createItem: function(configItem, index){
       var item, itemGroup, containerNode;
       item = new DockableItem({
         config: configItem,
-        backgroundIndex: index
+        backgroundIndex: index,
+        itemTabIndex: this.tabIndex
       });
       item.placeAt(this.iconGroupNode);
       this.iconList.push(item);
@@ -93,6 +106,10 @@ define(['dojo/_base/declare',
           this._onDockableNodeClick(data.target);
         })));
 
+        this.own(on(itemGroup, 'groupCloseBtnClicked', lang.hitch(this, function(){
+          item.iconItemNode.focus();
+        })));
+
         this.own(on(item, 'nodeClick', lang.hitch(this, function(data){
           this._onGroupNodeClick(data.target, itemGroup);
         })));
@@ -103,6 +120,8 @@ define(['dojo/_base/declare',
           this._onDockableNodeClick(data.target);
         })));
       }
+      //add tooltips
+      utils.addTooltipByDomNode(Tooltip, item.iconItemNode, configItem.label);
 
       return item;
     },
@@ -425,12 +444,20 @@ define(['dojo/_base/declare',
 
           this.enableNext = true;
           domClass.add(this.nextButton, 'enabled');
+          html.setAttr(this.nextButton, 'aria-disabled', 'false');
 
           if(idxFirst === 0){
             this.enablePrevious = false;
             domClass.remove(this.previousButton, 'enabled');
+            html.setAttr(this.previousButton, 'aria-disabled', 'true');
           }
         }
+      }
+    },
+
+    _previousKeyDown: function(evt){
+      if(this.enablePrevious && (evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE)){
+        this._previous();
       }
     },
 
@@ -453,12 +480,20 @@ define(['dojo/_base/declare',
 
           this.enablePrevious = true;
           domClass.add(this.previousButton, 'enabled');
+          html.setAttr(this.previousButton, 'aria-disabled', 'false');
 
           if(idxLast === this.iconList.length - 1){
             this.enableNext = false;
             domClass.remove(this.nextButton, 'enabled');
+            html.setAttr(this.nextButton, 'aria-disabled', 'true');
           }
         }
+      }
+    },
+
+    _nextKeyDown: function(evt){
+      if(this.enableNext && (evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE)){
+        this._next();
       }
     },
 
@@ -495,9 +530,9 @@ define(['dojo/_base/declare',
 
       if (window.isRTL) {
         if(iconBox.x < widgetBox.w + MIN_MARGIN){
-          position.left = mapBox.w - widgetBox.w - MIN_MARGIN;
+          position.right = mapBox.w - widgetBox.w - MIN_MARGIN;
         }else{
-          position.left = iconBox.x;
+          position.right = iconBox.x - widgetBox.w;
         }
       } else {
         if(iconBox.x + widgetBox.w + MIN_MARGIN > mapBox.w){
@@ -609,6 +644,7 @@ define(['dojo/_base/declare',
             this.own(aspect.after(widget, 'onClose', lang.hitch(this, function() {
               dockableItem.setOpened(false);
               this._removeFromOpenedIds(dockableItem.config.id);
+              dockableItem.iconItemNode.focus();
             })));
           }));
         }else{
@@ -626,6 +662,9 @@ define(['dojo/_base/declare',
             aspect.after(panel, 'onClose', lang.hitch(this, function(){
               dockableItem.setOpened(false);
               this._removeFromOpenedIds(dockableItem.config.id);
+              if(dockableItem.iconItemNode){
+                dockableItem.iconItemNode.focus();
+              }
             }));
           }));
 

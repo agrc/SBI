@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ define([
   'jimu/dijit/SearchDistance',
   'jimu/LayerInfos/LayerInfos',
   'esri/graphic',
+  'esri/tasks/query',
   'esri/symbols/jsonUtils',
   'esri/layers/GraphicsLayer',
   'esri/renderers/SimpleRenderer',
@@ -42,8 +43,8 @@ define([
 ],
 function(array, declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, template, on, Evented,
   Deferred, html, lang, jimuUtils, JimuQuery, CheckBox, FeaturelayerChooserFromMap,
-  LayerChooserFromMapWithDropbox, SearchDistance, LayerInfos, Graphic, symbolJsonUtils, GraphicsLayer, SimpleRenderer,
-  geometryEngine, FeatureSetChooserForSingleLayer) {
+  LayerChooserFromMapWithDropbox, SearchDistance, LayerInfos, Graphic, EsriQuery, symbolJsonUtils, GraphicsLayer,
+  SimpleRenderer, geometryEngine, FeatureSetChooserForSingleLayer) {
 
   var clazz = declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, Evented], {
     baseClass: 'jimu-dijit-spatial-filter-features',
@@ -73,6 +74,7 @@ function(array, declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, 
     //events:
     //loading
     //unloading
+    //search-distance-change
 
     postMixInProperties:function(){
       this.inherited(arguments);
@@ -124,6 +126,7 @@ function(array, declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, 
         ignoredFeaturelayerIds: this.ignoredFeaturelayerIds
       });
       this.layerChooserFromMapWithDropbox = new LayerChooserFromMapWithDropbox({
+        label: this.nls.relatedLayer,
         layerChooser: layerChooser
       });
       this.layerChooserFromMapWithDropbox.placeAt(this.layerSelectDiv);
@@ -228,6 +231,10 @@ function(array, declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, 
       if(this.selectionRadio.getValue()){
         this.selectionRadio.uncheck();
       }
+    },
+
+    isValidSearchDistance: function(){
+      return this.searchDistance.getStatus() >= 0;
     },
 
     /*
@@ -356,23 +363,50 @@ function(array, declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, 
           };
         }
 
-        var options = {};
-        options.url = featureLayer.url;
-        options.layerInfo = layerDefinition;
-        options.spatialReference = this.map.spatialReference;
-        options.where = "1=1";
-        options.geometry = null;
-        options.outFields = [];
+        // var options = {};
+        // options.url = featureLayer.url;
+        // options.layerInfo = layerDefinition;
+        // options.spatialReference = this.map.spatialReference;
+        // options.where = featureLayer.getDefinitionExpression();
+        // if(!options.where){
+        //   options.where = "1=1";
+        // }
+        // options.geometry = null;
+        // options.outFields = [];
 
         this.emit("loading");
-        var query = new JimuQuery(options);
-        //return a deferred object which resolves {status,count,features}
-        //if status > 0, means we get all features
-        //if status < 0, means count is big, so we can't get features
-        query.getFeatures().then(lang.hitch(this, function(result){
+        // var query = new JimuQuery(options);
+        // //return a deferred object which resolves {status,count,features}
+        // //if status > 0, means we get all features
+        // //if status < 0, means count is big, so we can't get features
+        // query.getFeatures().then(lang.hitch(this, function(result){
+        //   this.emit("unloading");
+        //   if(result.status > 0){
+        //     var features = result.features || [];
+        //     this._layerAllFeaturesCache[featureLayer.id] = features;
+        //     def.resolve(features);
+        //   }else{
+        //     def.reject("Can't get all features from featureLayer " + featureLayer.id);
+        //   }
+        // }), lang.hitch(this, function(err){
+        //   this.emit("unloading");
+        //   def.reject(err);
+        // }));
+        var query = new EsriQuery();
+        query.where = featureLayer.getDefinitionExpression() || "1=1";
+        query.geometry = null;
+        query.outSpatialReference = this.map.spatialReference;
+        query.returnGeometry = true;
+        // query.spatialRelationship = this.query.spatialRelationship;
+        // query.outFields = ["*"];
+        var loader = new JimuQuery({
+          url: featureLayer.url,
+          query: query
+        });
+        loader.getAllFeatures().then(lang.hitch(this, function(response){
           this.emit("unloading");
-          if(result.status > 0){
-            var features = result.features || [];
+          if(response){
+            var features = response.features || [];
             this._layerAllFeaturesCache[featureLayer.id] = features;
             def.resolve(features);
           }else{
@@ -538,6 +572,7 @@ function(array, declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, 
 
     _onSearchDistanceChange: function(){
       this._updateBuffer();
+      this.emit('search-distance-change');
     },
 
     _updateFeatureSetChooserForSingleLayerStatus: function(){

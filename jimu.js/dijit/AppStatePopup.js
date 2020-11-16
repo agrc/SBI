@@ -1,6 +1,18 @@
-/**
- * Created by wangjian on 16/1/20.
- */
+///////////////////////////////////////////////////////////////////////////
+// Copyright © Esri. All Rights Reserved.
+//
+// Licensed under the Apache License Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+///////////////////////////////////////////////////////////////////////////
 define(['dojo/_base/declare',
   'dijit/_WidgetBase',
   'dojo/_base/lang',
@@ -8,8 +20,9 @@ define(['dojo/_base/declare',
   'dojo/on',
   'dojo/mouse',
   'dojo/_base/fx',
+  'dojo/topic',
   'dojo/Evented'
-], function(declare, _WidgetBase, lang, html, on, Mouse, baseFx, Evented) {
+], function(declare, _WidgetBase, lang, html, on, Mouse, baseFx, topic, Evented) {
   var ANIMATION_DURATION = 1000,
     AUTO_CLOSE_INTERVAL = 10000,
     STATE_HIDE = 0,
@@ -64,16 +77,11 @@ define(['dojo/_base/declare',
       })));
 
       this.own(on(this.domNode, Mouse.enter, lang.hitch(this, function() {
-        if(this.timeoutHandler) {
-          clearTimeout(this.timeoutHandler);
-          this.timeoutHandler = undefined;
-        }
+        this._timerStop();
       })));
 
       this.own(on(this.domNode, Mouse.leave, lang.hitch(this, function() {
-        if(this.currentState === STATE_SHOW && !this.timeoutHandler) {
-          this.timeoutHandler = setTimeout(lang.hitch(this, this.hide), AUTO_CLOSE_INTERVAL);
-        }
+        this._timerStart();
       })));
     },
 
@@ -102,6 +110,14 @@ define(['dojo/_base/declare',
           this.currentState = STATE_SHOW;
         })
       }).play();
+
+      //wait for splash hide, when init
+      topic.subscribe("splashPopupShow", lang.hitch(this, function () {
+        this._timerStop();
+      }));
+      topic.subscribe("splashPopupHide", lang.hitch(this, function () {
+        this._timerStart();
+      }));
 
       this.timeoutHandler = setTimeout(lang.hitch(this, this.hide), AUTO_CLOSE_INTERVAL);
     },
@@ -137,6 +153,18 @@ define(['dojo/_base/declare',
           html.setStyle(this.domNode, 'display', 'none');
         })
       }).play();
+    },
+
+    _timerStart: function () {
+      if (this.currentState === STATE_SHOW && !this.timeoutHandler) {
+        this.timeoutHandler = setTimeout(lang.hitch(this, this.hide), AUTO_CLOSE_INTERVAL);
+      }
+    },
+    _timerStop: function () {
+      if (this.timeoutHandler) {
+        clearTimeout(this.timeoutHandler);
+        this.timeoutHandler = undefined;
+      }
     }
   });
 });

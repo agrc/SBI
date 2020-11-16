@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ define([
   'jimu/utils',
   'jimu/dijit/CheckBox',
   'esri/tasks/GeometryService',
-  'dijit/form/Select',
+  'jimu/dijit/formSelect',
   'dijit/form/NumberTextBox'
 ],
 function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, template, Evented, lang,

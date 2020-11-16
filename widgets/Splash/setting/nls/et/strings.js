@@ -10,9 +10,9 @@ define({
   "confirmOption": "Kuva vastav käivitamise aken alati, kui rakendus aktiveeritakse",
   "backgroundColor": "Taustvärv",
   "content": "Sisu",
-  "contentDescription": "Käivituskuval kuvatava sisu määratlemine",
+  "contentDescription": "Saate käivituskuval näidatavat sisu määratleda.",
   "appearance": "Välimus",
-  "appearanceDescription": "Käivituskuva ilme määramine",
+  "appearanceDescription": "Saate määrata käivituskuva ilme.",
   "size": "Suurus",
   "width": "Laius",
   "height": "Kõrgus",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Pilditäide",
   "chooseFile": "Vali fail",
   "noFileChosen": "Faili pole valitud",
-  "transparency": "Läbipaistvus",
   "sizeFill": "Täitevärv",
   "sizeFit": "Sobita",
   "sizeStretch": "Venita täitmiseks",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Nupu värv",
   "buttonText": "Nupu tekst",
   "buttonTextColor": "Nupu teksti värv",
+  "contentAlign": "Sisu paigutamine",
+  "alignTop": "Ülemine",
+  "alignMiddle": "Keskmine",
   "maskColor": "Maski värv",
   "options": "Valikud",
-  "optionsDescription": "Käivituskuva käitumise määramine"
+  "optionsDescription": "Saate määrata käivituskuva käitumise."
 });

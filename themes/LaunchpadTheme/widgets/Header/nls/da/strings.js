@@ -1,6 +1,6 @@
 define({
   "_widgetLabel": "Logo",
-  "signin": "Log ind",
+  "signin": "Sign in",
   "signout": "Log ud",
   "about": "Om",
   "signInTo": "Log ind på",

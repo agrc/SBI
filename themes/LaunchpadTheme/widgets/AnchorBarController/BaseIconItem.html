@@ -1,6 +1,6 @@
 <div>
-  <div class="icon-item" data-dojo-attach-point="iconItemNode"
-       data-dojo-attach-event="onclick:_onNodeClick">
+  <div role="button" class="icon-item" data-dojo-attach-point="iconItemNode"
+       data-dojo-attach-event="onclick:_onNodeClick,onkeydown:_onNodeKeydown">
     <img class="icon" src="${config.icon}" data-dojo-attach-point="imgNode"/>
   </div>
   <div class="status" data-dojo-attach-point="iconItemStatus">

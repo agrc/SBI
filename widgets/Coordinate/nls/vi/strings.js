@@ -12,6 +12,7 @@ define({
   "Default": "Mặc định",
   "Inches": "Inch",
   "Foot": "Feet",
+  "Foot_US": "Feet_US",
   "Yards": "Thước",
   "Miles": "Dặm",
   "Nautical_Miles": "Hải lý",
@@ -21,7 +22,7 @@ define({
   "Kilometers": "Kilômét",
   "Decimeters": "Đềximét",
   "Decimal_Degrees": "Độ",
-  "Degree_Minutes_Seconds": "Độ Phút Giây",
+  "Degree_Minutes_Seconds": "Độ phút giây",
   "MGRS": "MGRS",
   "USNG": "USNG"
 });

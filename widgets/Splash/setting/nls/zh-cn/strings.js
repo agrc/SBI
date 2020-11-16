@@ -10,9 +10,9 @@ define({
   "confirmOption": "每次启动应用程序时始终显示该启动画面",
   "backgroundColor": "背景颜色",
   "content": "内容",
-  "contentDescription": "确认显示在启动画面上的内容",
+  "contentDescription": "定义显示在启动画面上的内容。",
   "appearance": "外观",
-  "appearanceDescription": "设置启动屏幕的外观",
+  "appearanceDescription": "设置启动画面的外观。",
   "size": "大小",
   "width": "宽度",
   "height": "高度",
@@ -22,7 +22,6 @@ define({
   "imageFill": "影像填充",
   "chooseFile": "选择文件",
   "noFileChosen": "未选择文件",
-  "transparency": "透明度",
   "sizeFill": "填充",
   "sizeFit": "适应",
   "sizeStretch": "拉伸以填充",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "按钮颜色",
   "buttonText": "按钮文本",
   "buttonTextColor": "按钮文本颜色",
+  "contentAlign": "内容对齐",
+  "alignTop": "上",
+  "alignMiddle": "中",
   "maskColor": "掩膜颜色",
   "options": "选项",
-  "optionsDescription": "设置启动屏幕的行为"
+  "optionsDescription": "设置启动画面的行为。"
 });

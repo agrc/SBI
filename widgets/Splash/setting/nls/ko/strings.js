@@ -10,9 +10,9 @@ define({
   "confirmOption": "앱을 실행할 때마다 항상 이 스플래시 화면 보기",
   "backgroundColor": "배경 색상",
   "content": "콘텐츠",
-  "contentDescription": "시작 화면에 나타나는 콘텐츠 정의",
+  "contentDescription": "스플래시 페이지에 나타나는 콘텐츠를 정의합니다.",
   "appearance": "모양",
-  "appearanceDescription": "시작 화면의 모양 설정",
+  "appearanceDescription": "스플래시 페이지의 모양을 설정합니다.",
   "size": "크기",
   "width": "너비",
   "height": "높이",
@@ -22,7 +22,6 @@ define({
   "imageFill": "이미지 채우기",
   "chooseFile": "파일 선택",
   "noFileChosen": "선택한 파일 없음",
-  "transparency": "투명도",
   "sizeFill": "채우기",
   "sizeFit": "맞춤",
   "sizeStretch": "채우기로 스트레치",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "버튼 색상",
   "buttonText": "버튼 텍스트",
   "buttonTextColor": "버튼 텍스트 색상",
+  "contentAlign": "콘텐츠 정렬",
+  "alignTop": "위쪽",
+  "alignMiddle": "가운데",
   "maskColor": "마스크 색상",
   "options": "옵션",
-  "optionsDescription": "시작 화면의 동작 설정"
+  "optionsDescription": "스플래시 페이지의 동작을 설정합니다."
 });

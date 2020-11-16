@@ -3,8 +3,11 @@
   z-index: 60;
   overflow: visible;
 }
-
+.jimu-launchpad-panel>.jimu-panel-title{
+  display: flex;
+}
 .jimu-launchpad-panel .color-header{
+  display: none;
   height: 3px;
   width: 100%;
   background-color: #FF0000;
@@ -22,9 +25,6 @@
 }
 
 .jimu-launchpad-panel .title .widget-icon{
-  position: absolute;
-  left: 2px;
-  top: 2px;
   width: 24px;
   height: 24px;
   cursor: default;
@@ -48,9 +48,30 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 30px;
-  position: absolute;
-  left: 36px;
-  right: 72px;
+  flex-grow: 1;
+  padding: 0 10px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.jimu-launchpad-panel .title-label:focus{
+  outline: none !important;
+}
+
+.jimu-launchpad-panel .btns-container{
+  min-width: 56px;
+  max-width: 84px;
+  flex-grow: 0;
+  display: flex;
+  height: calc(100% - 4px);
+  margin-top: 2px;
+  margin-right: 2px;
+}
+
+.jimu-rtl .jimu-launchpad-panel .btns-container{
+  margin-right: 0;
+  margin-left: 2px;
 }
 
 .jimu-launchpad-panel.minimized .title-label{
@@ -58,8 +79,8 @@
 }
 
 .jimu-rtl .jimu-launchpad-panel .title-label{
-  right: 48px;
-  left: 96px;
+  /* right: 48px;
+  left: 96px; */
 }
 
 .jimu-launchpad-panel .title .min-icon{

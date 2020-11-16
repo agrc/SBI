@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,10 +30,11 @@ define([
     'jimu/dijit/Message',
     'jimu/dijit/Popup',
     'jimu/dijit/CheckBox',
-    'jimu/dijit/LoadingShelter',
+    'jimu/dijit/LoadingIndicator',
     'jimu/portalUtils',
     './Edit',
     "jimu/SpatialReference/srUtils",
+    'jimu/dijit/RadioBtn',
     'dojo/NodeList-dom',
     'dijit/form/NumberSpinner',
     'dijit/form/NumberTextBox'
@@ -54,7 +55,7 @@ define([
     Message,
     Popup,
     CheckBox,
-    LoadingShelter,
+    LoadingIndicator,
     portalUtils,
     Edit,
     utils) {
@@ -75,13 +76,13 @@ define([
           checked: false
         }, this.separator);
 
-        this.shelter1 = new LoadingShelter({
+        this.shelter1 = new LoadingIndicator({
           hidden: true
         });
         this.shelter1.placeAt(this.domNode);
         this.shelter1.startup();
 
-        this.shelter2 = new LoadingShelter({
+        this.shelter2 = new LoadingIndicator({
           hidden: true
         });
         this.shelter2.placeAt(this.domNode);
@@ -106,10 +107,21 @@ define([
           hidden: true,
           editable: false
         }, {
+          name: 'isDefault',
+          title: this.nls.defaultTitle,
+          type: 'radio',
+          editable: true,
+          width: '100px'
+        }, {
           name: 'label',
           title: this.nls.label,
           type: 'text',
           editable: false
+        }, {
+          name: 'alias',
+          title: this.nls.alias,
+          type: 'text',
+          editable: true
         }, {
           name: 'outputUnit',
           title: this.nls.output,
@@ -151,7 +163,8 @@ define([
         var args = {
           autoHeight: false,
           fields: fields,
-          selectable: false
+          selectable: false,
+          singleClickEdit: true
         };
         this.outputCoordinateTable = new Table(args);
         html.setStyle(this.outputCoordinateTable.domNode, 'height', '100%');
@@ -160,6 +173,8 @@ define([
 
         this.own(on(this.outputCoordinateTable, 'actions-edit', lang.hitch(this, 'onEditClick')));
         this.setConfig(this.config);
+
+        this._initOrderLonLatRadioBtns();
 
         this._getGeometryServiceVersion();
       },
@@ -173,12 +188,17 @@ define([
           if (config.spatialReferences && config.spatialReferences.length) {
             var json = [];
             var len = config.spatialReferences.length;
+
             for (var i = 0; i < len; i++) {
               var wkid = parseInt(config.spatialReferences[i].wkid, 10);
+              var isDefaultValue = config.spatialReferences[i].isDefault;
+              var aliasValue = config.spatialReferences[i].alias;
               json.push({
                 id: i,
                 wkid: utils.standardizeWkid(wkid),
+                isDefault: isDefaultValue || false,
                 label: config.spatialReferences[i].label,
+                alias: aliasValue || config.spatialReferences[i].label,
                 outputUnit: config.spatialReferences[i].outputUnit,
                 transformationWkid: config.spatialReferences[i].transformationWkid,
                 transformationLabel: config.spatialReferences[i].transformationLabel,
@@ -242,6 +262,7 @@ define([
               wkid: utils.standardizeWkid(mapWkid),
               label: utils.getSRLabel(parseInt(mapWkid, 10))
             };
+            item.alias = item.label;
 
             if (utils.isProjectedCS(item.wkid)) {
               item.outputUnit = units === "english" ? "FOOT" : "METER";
@@ -268,6 +289,13 @@ define([
               _options.unitRate = 1;
               item.outputUnit = "DECIMAL_DEGREES";
             }
+
+            //for hack DEGREES_DECIMAL_MINUTES
+            if(item.outputUnit === "DEGREES_DECIMAL_MINUTES"){
+              _options.isGeographicUnit = true;
+              _options.unitRate = 1;
+            }
+
             item.options = dojoJSON.stringify(_options);
             this.outputCoordinateTable.addRow(item);
           }
@@ -336,6 +364,9 @@ define([
 
         json.wkid = utils.standardizeWkid(json.wkid);
         json.options = dojoJSON.stringify(json.options);
+        if (json.label) {
+          json.alias = json.label;
+        }
 
         if (this.popupState === "ADD") {
           editResult = this.outputCoordinateTable.addRow(json);
@@ -379,6 +410,21 @@ define([
         this.config.addSeparator = this.separator.getValue();
 
         return this.config;
+      },
+      _initOrderLonLatRadioBtns: function() {
+        this.own(on(this.lonLat, 'click', lang.hitch(this, function() {
+          this.config.displayOrderLonLat = true;
+        })));
+        this.own(on(this.latLon, 'click', lang.hitch(this, function() {
+          this.config.displayOrderLonLat = false;
+        })));
+        if (this.config.displayOrderLonLat) {
+          this.lonLat.set('checked', true);
+          this.config.displayOrderLonLat = true;
+        } else {
+          this.latLon.set('checked', true);
+          this.config.displayOrderLonLat = false;
+        }
       }
     });
   });

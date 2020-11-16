@@ -12,6 +12,7 @@ define({
   "Default": "По умолчанию",
   "Inches": "Дюймы",
   "Foot": "Футы",
+  "Foot_US": "Feet_US",
   "Yards": "Ярды",
   "Miles": "Мили",
   "Nautical_Miles": "Морские мили",
@@ -21,7 +22,7 @@ define({
   "Kilometers": "Километры",
   "Decimeters": "Дециметры",
   "Decimal_Degrees": "Градусы",
-  "Degree_Minutes_Seconds": "Градусы, минуты, секунды",
+  "Degree_Minutes_Seconds": "Градусы минуты секунды",
   "MGRS": "MGRS",
   "USNG": "USNG"
 });

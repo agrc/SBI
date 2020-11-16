@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,8 +17,12 @@
 define(['dojo/_base/declare',
   'dojo/_base/array',
   'dojo/_base/lang',
+  'dojo/_base/html',
   'dojo/fx',
   'dojo/on',
+  'dojo/keys',
+  'dijit/Tooltip',
+  'jimu/utils',
   'dojo/Evented',
   'dojo/dom-style',
   'dojo/dom-class',
@@ -28,7 +32,7 @@ define(['dojo/_base/declare',
   'dijit/_TemplatedMixin',
   'dojo/text!./GroupItems.html',
   './BaseIconItem'
-  ], function(declare, array, lang, coreFx, on, Evented, domStyle, domClass,
+  ], function(declare, array, lang, html, coreFx, on, keys, Tooltip, utils, Evented, domStyle, domClass,
   domGeometry, Move, _WidgetBase, _TemplatedMixin, template, BaseIconItem){
   /* global jimuConfig */
   /**
@@ -47,6 +51,10 @@ define(['dojo/_base/declare',
     itemList: [],
     box: null,
 
+    postMixInProperties:function(){
+      this.headerNls = window.jimuNls.panelHeader;
+    },
+
     postCreate: function() {
       this.inherited(arguments);
 
@@ -54,16 +62,37 @@ define(['dojo/_base/declare',
       array.forEach(this.config.widgets, function(widgetConfig, subIndex){
         var groupItem = new BaseIconItem({
           config: widgetConfig,
-          backgroundIndex: subIndex
+          backgroundIndex: subIndex,
+          itemTabIndex: 0
         });
         groupItem.placeAt(this.containerNode);
 
         this.own(on(groupItem, 'nodeClick', lang.hitch(this, this._onIconClick)));
         this.itemList.push(groupItem);
+
+        //add tooltips
+        utils.addTooltipByDomNode(Tooltip, groupItem.iconItemNode, widgetConfig.label);
       }, this);
 
       domClass.add(this.colorfulHeader, 'icon-item-background' +
           this.dockableItem.getBackgroundColorIndex());
+
+      this.own(on(this.domNode, 'keydown', lang.hitch(this, function(evt){
+        if(!html.hasClass(evt.target, 'close-icon') && evt.keyCode === keys.ESCAPE){
+          this.closeNode.focus();
+        }else if(evt.keyCode === keys.TAB && html.hasClass(evt.target, 'icon-item')){
+          var nextItem;
+          if(!evt.shiftKey && !evt.target.parentNode.nextElementSibling){
+            nextItem = this.itemList[0];
+          }else if(evt.shiftKey && !evt.target.parentNode.previousElementSibling){
+            nextItem = this.itemList[this.itemList.length - 1];
+          }
+          if(nextItem){
+            evt.preventDefault();
+            nextItem.iconItemNode.focus();
+          }
+        }
+      })));
     },
 
     startup: function(){
@@ -118,6 +147,10 @@ define(['dojo/_base/declare',
         node: this.domNode,
         duration: 400
       }).play();
+      //focus on first widget icon.
+      setTimeout(lang.hitch(this, function(){
+        this.itemList[0].iconItemNode.focus();
+      }), 405);
     },
 
     close: function(){
@@ -135,6 +168,15 @@ define(['dojo/_base/declare',
 
     _onCloseBtnClicked: function(){
       this.close();
+      this.emit('groupCloseBtnClicked');
+    },
+
+    _onCloseBtnKeydown: function(evt){
+      if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+        this._onCloseBtnClicked();
+      }else if(evt.keyCode === keys.TAB && evt.shiftKey){
+        evt.preventDefault();
+      }
     },
 
     _onIconClick: function(data) {

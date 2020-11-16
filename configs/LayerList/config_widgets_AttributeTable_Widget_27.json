@@ -1,0 +1,33 @@
+{
+  "showTitle": false,
+  "showBasemap": false,
+  "showLegend": false,
+  "expandAllLayersByDefault": false,
+  "contextMenu": {
+    "ZoomTo": false,
+    "Transparency": true,
+    "SetVisibilityRange": false,
+    "EnableOrDisablePopup": false,
+    "ControlLabels": false,
+    "MoveupOrMovedown": false,
+    "OpenAttributeTable": false,
+    "DescriptionOrShowItemDetailsOrDownload": false
+  },
+  "layerOptions": {
+    "LawEnforcementBoundaries_6886": {
+      "display": true
+    },
+    "SBI_Operations_6501": {
+      "display": true
+    },
+    "SBI_Operations_6190": {
+      "display": true
+    },
+    "SBI_Operations_7904": {
+      "display": true
+    },
+    "SBI_Operations_8820": {
+      "display": true
+    }
+  }
+}

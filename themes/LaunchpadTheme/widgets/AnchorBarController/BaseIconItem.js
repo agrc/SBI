@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 
 define(['dojo/_base/declare',
   'dojo/_base/lang',
+  'dojo/_base/html',
   'dojo/dom-class',
   'dojo/dom-style',
   'dojo/on',
+  'dojo/keys',
   'dojo/mouse',
   'dojo/Evented',
   'dijit/_WidgetBase',
@@ -26,7 +28,7 @@ define(['dojo/_base/declare',
   'dijit/popup',
   'dijit/TooltipDialog',
   'dojo/text!./BaseIconItem.html'
-  ], function(declare, lang, domClass, domStyle, on, mouse, Evented,
+  ], function(declare, lang, html, domClass, domStyle, on, keys, mouse, Evented,
   _WidgetBase, _TemplatedMixin, popup, TooltipDialog, template){
   var PANEL_WIDTH = 350, PANEL_HEIGHT = 480, MIN_MARGIN = 10,
       BACKGROUND_COLOR_COUNT = 6;
@@ -68,6 +70,12 @@ define(['dojo/_base/declare',
         'class': "launchpad-tooltip"
       });
 
+      if (window.isRTL && this.config.mirrorIconForRTL) {
+        domClass.add(this.imgNode, 'jimu-flipx');
+      }
+
+      html.setAttr(this.iconItemNode, 'tabindex', this.itemTabIndex);
+      html.setAttr(this.iconItemNode, 'aria-label', this.config.label);
       domClass.add(this.iconItemNode, 'icon-item-background' + this.getBackgroundColorIndex());
 
       this.own(on(this.iconItemNode, mouse.enter, lang.hitch(this, function(){
@@ -131,6 +139,12 @@ define(['dojo/_base/declare',
       this.emit('nodeClick', {
         target: this
       });
+    },
+
+    _onNodeKeydown: function(evt){
+      if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+        this._onNodeClick();
+      }
     },
 
     /**

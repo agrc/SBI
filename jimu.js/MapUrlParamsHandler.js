@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ///////////////////////////////////////////////////////////////////////////
 
 define([
+  'dojo/_base/lang',
   'dojo/_base/array',
   'dojo/Deferred',
   'dojo/topic',
@@ -32,24 +33,36 @@ define([
   'esri/InfoTemplate',
   'esri/tasks/query',
   './utils',
-  './LayerInfos/LayerInfos'
-], function(array, Deferred, topic, all, Point, Extent, scaleUtils, SpatialReference,
+  './LayerInfos/LayerInfos',
+  './shareUtils'
+], function(lang, array, Deferred, topic, all, Point, Extent, scaleUtils, SpatialReference,
   ProjectParameters, esriConfig, wmUtils, symbolJsonUtils, Graphic, GraphicsLayer, InfoTemplate,
-  Query, jimuUtils, LayerInfos) {
+  Query, jimuUtils, LayerInfos, shareUtils) {
   var mo = {};
 
   /**
    * Process the following URL parameters:
+   * 1 layersVisibilitys
+   * 1. showLayers
+   * 2. hideLayers
+   *
+   * 2 others
    * 1. set extent
    * 2. set point
    * 3. Find location or feature to open map
    * 4. Add point mark
    * 5. query
+   * 6. showLayers
    */
 
   /* jshint maxlen: 500 */
   mo.postProcessUrlParams = function(urlParams, map){
     //urlParams have been decoded.
+
+    //1.layersVisibilitys
+    setLayersVisibility(urlParams, map);
+
+    //2.others
     if('extent' in urlParams){
       return setExtent(urlParams, map);
     }else if('center' in urlParams){
@@ -102,10 +115,24 @@ define([
   function setExtent(queryObject, map){
     //?extent=-13054125.21,4029134.71,-13032684.63,4041785.04,102100 or ?extent=-13054125.21;4029134.71;-13032684.63;4041785.04;102100
     //?extent=-117.2672,33.9927,-117.0746,34.1064 or ?extent=-117.2672;33.9927;-117.0746;34.1064
-    var extArray = queryObject.extent.split(";");
-    if (extArray.length === 1) {
-      extArray = queryObject.extent.split(",");
+
+    //?extent=1008562.1255,1847133.031,1060087.7901,1877230.7859,wkt=PROJCS["NAD_1983_HARN_StatePlane_Illinois_East_FIPS_1201",GEOGCS["GCS_North_American_1983_HARN",DATUM["D_North_American_1983_HARN",SPHEROID["GRS_1980",6378137.0,298.257222101]]......
+    var extArray = queryObject.extent.split("wkt=");
+    var wkt = null;
+    if (extArray.length === 2) {
+      //with "wkt="
+      wkt = extArray[1];
+      extArray = extArray[0];
+
+      extArray = extArray.split(",");
+    } else {
+      //without "wkt="
+      extArray = queryObject.extent.split(";");
+      if (extArray.length === 1) {
+        extArray = queryObject.extent.split(",");
+      }
     }
+
     if (extArray.length === 4 || extArray.length === 5) {
       var minx = parseFloat(extArray[0]);
       var miny = parseFloat(extArray[1]);
@@ -122,7 +149,13 @@ define([
         if (extArray.length === 5 && !isNaN(extArray[4])) {
           wkid = parseInt(extArray[4], 10);
         }
-        var ext = new Extent(minx, miny, maxx, maxy, new SpatialReference({wkid:wkid}));
+
+        var ext = null;
+        if (wkt) {
+          ext = new Extent(minx, miny, maxx, maxy, new SpatialReference({ wkt: wkt }));
+        } else {
+          ext = new Extent(minx, miny, maxx, maxy, new SpatialReference({ wkid: wkid }));
+        }
 
         if (!sameSpatialReference(map.spatialReference, ext.spatialReference)) {
 
@@ -156,7 +189,22 @@ define([
     ?marker=-117,34,,,,My%20location&level=10
     ?marker=-117,34&level=10
     ?marker=10406557.402,6590748.134,2526&level=10
+    ?marker=-118.23561805665008,34.06479896707922,,,,&markertemplate={"title":"Title","longitude":-118.23561805665008,"latitude":34.06479896707922,"isIncludeShareUrl":true}&level=14
     */
+    var template = null;
+    if (queryObject.markertemplate) {
+      template = {
+        title: "",
+        content: "",
+        isIncludeShareUrl: false
+      };
+      try {
+        var temp = JSON.parse(decodeURIComponent(queryObject.markertemplate));
+        lang.mixin(template, temp);
+      } catch (error) {
+        console.error('urlParams: &markertemplate JSON.parse error.' + error.stack);
+      }
+    }
 
     var markerArray = queryObject.marker.split(";");
     if (markerArray.length === 1) {
@@ -217,12 +265,12 @@ define([
 
         if(!sameSpatialReference(point.spatialReference, map.spatialReference)){
           project(point, map.spatialReference, function(geometries){
-            addMarker(geometries[0], markerSymbol, textSymbol, title, map);
+            addMarker(geometries[0], markerSymbol, textSymbol, title, template, map);
           }, function(){
             console.error('Project center point error.');
           });
         }else{
-          addMarker(point, markerSymbol, textSymbol, title, map);
+          addMarker(point, markerSymbol, textSymbol, title, template, map);
         }
       });
     }
@@ -235,10 +283,21 @@ define([
     }, true);
   }
 
-  function addMarker(point, markerSymbol, textSymbol, title, map){
+  function addMarker(point, markerSymbol, textSymbol, title, template, map){
     var markerG, textG;
     var infoTemplate = new InfoTemplate('', title);
-    var layer = new GraphicsLayer();
+    if (template) {
+      var content = shareUtils.getXyContent(template);
+      //shareUrl
+      if (template.isIncludeShareUrl) {
+        var url = shareUtils.getShareUrl(map, template, true);
+        var shareUrlContent = shareUtils.getShareUrlContent(url);
+        content += shareUrlContent;
+      }
+      infoTemplate.setContent(content);
+    }
+
+    var layer = new GraphicsLayer({id: "marker-feature-action-layer"});
     map.addLayer(layer);
 
     markerG = new Graphic(point, markerSymbol, null, infoTemplate);
@@ -248,6 +307,8 @@ define([
       textSymbol.yoffset = markerSymbol.height / 2 + markerSymbol.yoffset;
       textG = new Graphic(new Point(point.toJson()), textSymbol);
       layer.add(textG);
+
+      markerG._textSymbol = textG;
     }
 
     map.centerAt(point);
@@ -341,7 +402,9 @@ define([
       }
     }
 
-    layer.layerObject.selectFeatures(query).then(function(features){
+    query.maxAllowableOffset = 0.00001;
+    layer.layerObject.queryFeatures(query).then(function(featureSet){
+      var features = featureSet.features;
       if(features.length === 0){
         console.log('No result from query URL parameter.');
         return;
@@ -365,24 +428,20 @@ define([
       var infoTemplate = layer.layerInfo.getInfoTemplate();
       if(!infoTemplate){
         layer.layerInfo.loadInfoTemplate().then(function(it){
-          addGraphics(it);
+          setFeaturesInfoTemplate(it);
           doShow();
         });
       }else{
-        addGraphics(infoTemplate);
+        setFeaturesInfoTemplate(infoTemplate);
         doShow();
       }
     }else{
       doShow();
     }
 
-    function addGraphics(infoTemplate){
-      var glayer = new GraphicsLayer();
-      glayer.setRenderer(layer.layerObject.renderer);
-      map.addLayer(glayer);
-      array.forEach(features, function(g){
-        g.setInfoTemplate(infoTemplate);
-        glayer.add(g);
+    function setFeaturesInfoTemplate(infoTemplate){
+      array.forEach(features, function(f){
+        f.setInfoTemplate(infoTemplate);
       });
     }
 
@@ -533,6 +592,38 @@ define([
       }
     }
     return false;
+  }
+
+  //Layers Visibility
+  function setLayersVisibility(urlParams, map) {
+    var layersVisibilityParamArray = ["showLayers", "hideLayers", "showLayersEncoded", "hideLayersEncoded"];
+    for (var i = 0, len = layersVisibilityParamArray.length; i < len; i++) {
+      var param = layersVisibilityParamArray[i];
+      var paramLowerCase = param.toLowerCase();
+
+      for (var key in urlParams) {
+        var keyLowerCase = key.toLowerCase();
+        if (paramLowerCase === keyLowerCase) {//ignore case for urlParams ,#16481
+          layersVisibility(urlParams, key, param, map);
+          return;
+        }
+      }
+    }
+  }
+  //parameters: showlayers,hideLayers
+  function layersVisibility(queryObject, visibilityMode, param, map) {
+    var layers = [];
+    if (queryObject && queryObject[visibilityMode] && queryObject[visibilityMode].split) {
+      layers = queryObject[visibilityMode].split(";");
+    }
+
+    if (layers && layers.length > 0) {
+      var options = {};
+      options[param] = layers;//just support CamelCase inside, like: "showLayers", "hideLayers"
+      LayerInfos.getInstance(map, map.itemInfo).then(function (layerInfosObj) {
+        layerInfosObj.setSimplificationState(options);
+      });
+    }
   }
 
   return mo;

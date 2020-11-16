@@ -10,9 +10,9 @@ define({
   "confirmOption": "Prikaži ovaj uvodni ekran svaki put kada se aplikacija pokrene",
   "backgroundColor": "Boja pozadine",
   "content": "Sadržaj",
-  "contentDescription": "Definiši sadržaj koji se prikazuje na uvodnom ekranu",
+  "contentDescription": "Definišite sadržaj koji se prikazuje na uvodnom ekranu.",
   "appearance": "Izgled",
-  "appearanceDescription": "Podesi izgled uvodnog ekrana",
+  "appearanceDescription": "Podesite izgled uvodnog ekrana.",
   "size": "Veličina",
   "width": "Širina",
   "height": "Visina",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Popuna slike",
   "chooseFile": "Izaberite datoteku",
   "noFileChosen": "Nijedna datoteka nije odabrana",
-  "transparency": "Prozirnost",
   "sizeFill": "Ispuna",
   "sizeFit": "Uklapanje",
   "sizeStretch": "Razvuci za ispunu",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Boja dugmeta",
   "buttonText": "Tekst dugmeta",
   "buttonTextColor": "Boja teksta dugmeta",
+  "contentAlign": "Uklapanje sadržaja",
+  "alignTop": "Vrh",
+  "alignMiddle": "Sredina",
   "maskColor": "Boja maske",
   "options": "Opcije",
-  "optionsDescription": "Podesi ponašanje uvodnog ekrana"
+  "optionsDescription": "Podesite ponašanje uvodnog ekrana."
 });

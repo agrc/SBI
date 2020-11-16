@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,9 @@
 // limitations under the License.
 ///////////////////////////////////////////////////////////////////////////
 
-define(['dojo/_base/declare',
+define([
+    'dojo/_base/declare',
+    'dojo/_base/config',
     'dijit/_WidgetBase',
     'dijit/_TemplatedMixin',
     'dijit/_WidgetsInTemplateMixin',
@@ -25,16 +27,20 @@ define(['dojo/_base/declare',
     'dojo/on',
     'dijit/form/HorizontalSlider',
     'dijit/form/HorizontalRuleLabels',
-    'dijit/form/HorizontalRule'
+    'dijit/form/HorizontalRule',
+    "./a11y/_Transparency"
   ],
-  function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
+  function(declare, dojoConfig, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
     Evented, template, lang, html, on, HorizontalSlider, HorizontalRuleLabels,
-    HorizontalRule) {/* jshint unused: false */
-    return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, Evented], {
+    HorizontalRule, a11y) {/* jshint unused: false */
+    var clazz = declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, Evented], {
       baseClass: 'jimu-transparency',
       declaredClass: 'jimu.dijit.Transparency',
       templateString: template,
       nls: null,
+      _nls0: '0%',
+      _nls50: '50%',
+      _nls100: '100%',
 
       //options:
       alpha: 1.0,
@@ -48,6 +54,17 @@ define(['dojo/_base/declare',
 
       postMixInProperties: function() {
         this.nls = window.jimuNls.transparency;
+        var locale = dojoConfig.locale || "";
+        locale = locale.toLowerCase();
+        if(locale === 'ar'){
+          this._nls0 = '٪0';
+          this._nls50 = '٪50';
+          this._nls100 = '٪100';
+        }else if(locale === 'tr'){
+          this._nls0 = '%0';
+          this._nls50 = '%50';
+          this._nls100 = '%100';
+        }
       },
 
       postCreate: function(){
@@ -55,6 +72,8 @@ define(['dojo/_base/declare',
         if(typeof this.alpha === 'number'){
           this.setAlpha(this.alpha);
         }
+        //pass the aria-XXX to focusNode.
+        this.a11y_initAriaAttrs();
       },
 
       setAlpha: function(alpha){
@@ -73,4 +92,6 @@ define(['dojo/_base/declare',
       }
 
     });
+    clazz.extend(a11y);//for a11y
+    return clazz;
   });

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,13 +22,16 @@ define([
     'dojo/Deferred',
     'dojo/topic',
     'dojo/json',
+    'dojo/request/xhr',
     'esri/request',
+    './Role',
     './utils',
     './portalUrlUtils',
-    './tokenUtils'
+    './tokenUtils',
+    './ServiceDefinitionManager'
   ],
-  function(declare, lang, array, dojoConfig, Deferred, topic, dojoJson, esriRequest, jimuUtils,
-    portalUrlUtils, tokenUtils) {
+  function(declare, lang, array, dojoConfig, Deferred, topic, dojoJson, xhr, esriRequest, Role, jimuUtils,
+    portalUrlUtils, tokenUtils, ServiceDefinitionManager) {
 
     //important attributes of portal relevant classes
     //attributes: portalUrl,credential,portal
@@ -48,32 +51,26 @@ define([
       },
 
       loadSelfInfo: function() {
-        var def = new Deferred();
-        var args = {
-          url: this.selfUrl,
-          content: {
-            f: 'json'
-          },
-          handleAs: 'json',
-          callbackParamName: 'callback',
-          preventCache: true
-        };
+        var url = this.selfUrl;
+
         if(this.isValidCredential()){
-          args.content.token = this.credential.token;
+          if(url.indexOf('?') > -1){
+            url += '&token=' + this.credential.token;
+          }else{
+            url += '?token=' + this.credential.token;
+          }
         }
-        esriRequest(args).then(lang.hitch(this, function(response) {
+
+        return ServiceDefinitionManager.getInstance().getServiceDefinition(url)
+        .then(lang.hitch(this, function(response) {
           var user = response.user;
           //This is important. Otherwise response.user will override this.user(PortalUser).
           delete response.user;
           lang.mixin(this, response);
           response.user = user;
           //this.selfInfo = lang.mixin({}, response);
-          def.resolve(response);
-        }), lang.hitch(this, function(err) {
-          console.error(err);
-          def.reject(err);
+          return response;
         }));
-        return def;
       },
 
       _checkCredential: function() {
@@ -222,18 +219,14 @@ define([
           callbackParamName: 'callback'
         };
 
-        if (this.isValidCredential()) {
-          args.content.token = this.credential.token;
-        }
+        // if (this.isValidCredential()) {
+        //   args.content.token = this.credential.token;
+        // }
 
         return esriRequest(args);
       },
 
-      getItemById: function(_itemId) {
-        var def = new Deferred();
-
-        this.updateCredential();
-
+      _getItemById: function(_itemId, /*optional*/ token) {
         var url = portalUrlUtils.getItemUrl(this.portalUrl, _itemId);
         var args = {
           url: url,
@@ -244,21 +237,29 @@ define([
           callbackParamName: 'callback'
         };
 
-        if (this.isValidCredential()) {
-          args.content.token = this.credential.token;
+        if(token){
+          args.content.token = token;
         }
 
-        esriRequest(args).then(lang.hitch(this, function(item) {
+        return esriRequest(args).then(lang.hitch(this, function(item) {
           item.portalUrl = this.portalUrl;
           item.credential = this.credential;
           item.portal = this;
           var portalItem = new PortalItem(item);
-          def.resolve(portalItem);
-        }), lang.hitch(this, function(err) {
-          console.error(err);
-          def.reject(err);
+          return portalItem;
         }));
-        return def;
+      },
+
+      getItemById: function(_itemId, /*optional*/ carryToken) {
+        this.updateCredential();
+
+        return this._getItemById(_itemId).then(lang.hitch(this, function(item){
+          if(carryToken && item.owner && this.isValidCredential() &&
+             this.credential && this.credential.userId === item.owner){
+            return this._getItemById(_itemId, this.credential.token);
+          }
+          return item;
+        }));
       },
 
       getAppById: function(appId) {
@@ -360,7 +361,7 @@ define([
         if (this.isValidCredential()) {
           this.getUser().then(lang.hitch(this, function(user) {
             var args = {
-              title: "Web AppBuilder for ArcGIS",
+              title: "ArcGIS Web AppBuilder",
               type: "Web Mapping Application",
               //typeKeywords: "Web AppBuilder",
               text: '',
@@ -427,6 +428,22 @@ define([
           def.reject(err);
         }));
         return def;
+      },
+
+      getHelpMap: function() {
+        this.updateCredential();
+
+        var helpmapUrl = portalUrlUtils.getPortalHelpMapUrl(this.portalUrl);
+        var args = {
+          url: helpmapUrl,
+          handleAs: 'json',
+          content: {
+            f: 'json'
+          },
+          callbackParamName: 'callback'
+        };
+
+        return esriRequest(args);
       }
     });
 
@@ -461,6 +478,31 @@ define([
           this.portal.updateCredential();
           this.credential = this.portal.credential;
         }
+      },
+
+      canCreateItem: function(){
+        var userRole = new Role({
+          id: this.roleId ? this.roleId : this.role,
+          role: this.role
+        });
+
+        if (this.privileges) {
+          userRole.setPrivileges(this.privileges);
+        }
+
+        return userRole.canCreateItem();
+      },
+
+      canCreateNotebooks: function() {
+        var userRole = new Role({
+          id: this.roleId ? this.roleId : this.role,
+          role: this.role
+        });
+
+        if (this.privileges) {
+          userRole.setPrivileges(this.privileges);
+        }
+        return userRole.canCreateNotebooks();
       },
 
       getGroups: function() {
@@ -604,9 +646,9 @@ define([
           callbackParamName: 'callback'
         };
 
-        if (this.isValidCredential()) {
-          args.content.token = this.credential.token;
-        }
+        // if (this.isValidCredential()) {
+        //   args.content.token = this.credential.token;
+        // }
 
         esriRequest(args).then(lang.hitch(this, function(item) {
           item.portalUrl = this.portalUrl;
@@ -715,6 +757,43 @@ define([
       isUserRole: function(){
         //use account_user for back compability
         return this.role === 'org_user' || this.role === 'account_user';
+      },
+
+      getRegisteredAppInfo: function(itemId, folderId) {
+        var def = new Deferred();
+
+        this.updateCredential();
+        var userItemsUrl = portalUrlUtils.getUserItemsUrl(this.portalUrl, this.username, folderId);
+        var getRegisteredAppInfoUrl = userItemsUrl + "/" + itemId + "/registeredAppInfo";
+        def = esriRequest({
+          url: getRegisteredAppInfoUrl,
+          content: {
+            token: this.credential.token,
+            f: 'json'
+          },
+          handleAs: 'json'
+        }, {
+          usePost: true
+        });
+
+        return def;
+      },
+
+      getRegisteredAppInfoWithXhr: function(itemId, folderId) {
+        var def = new Deferred();
+
+        this.updateCredential();
+        var userItemsUrl = portalUrlUtils.getUserItemsUrl(this.portalUrl, this.username, folderId);
+        var getRegisteredAppInfoUrl = userItemsUrl + "/" + itemId + "/registeredAppInfo";
+        def = xhr(getRegisteredAppInfoUrl, {
+          data: {
+            token: this.credential.token,
+            f: 'json'
+          },
+          method: 'POST',
+          handleAs: 'json'
+        });
+        return def;
       }
     });
 
@@ -1040,7 +1119,8 @@ define([
         var portal = this.getPortal(portalUrl);
         //must use double quotation marks around typeKeywords
         //such as typekeywords:"Web AppBuilder" or typekeywords:"Web AppBuilder,Web Map"
-        var q = 'typekeywords:"WABDefaultWebScene" access:public ' + this.webSceneQueryStr;
+        var q = 'typekeywords:"WABDefaultWebScene" orgid:' + portal.user.orgId +
+        ' access:public ' + this.webSceneQueryStr;
         var args = {
           q: q
         };
@@ -1063,71 +1143,87 @@ define([
         portalUrl = portalUrlUtils.getStandardPortalUrl(portalUrl);
         var portal = this.getPortal(portalUrl);
         portal.getUser().then(lang.hitch(this, function(user){
-          var url1 = "http://services.arcgisonline.com/ArcGIS/rest/services/" +
-                     "World_Imagery/MapServer";
-          var url2 = "http://elevation3d.arcgis.com/arcgis/rest/services/" +
-                     "WorldElevation3D/Terrain3D/ImageServer";
           var data = {
             "operationalLayers": [],
             "baseMap": {
-              "id": "151b431fe65-basemap-0",
-              "title": "Topographic",
-              "baseMapLayers": [{
-                "id": "defaultBasemap",
-                "url": url1,
-                "layerType": "ArcGISTiledMapServiceLayer"
-              }],
-              "elevationLayers": [{
-                "id": "globalElevation",
-                "url": url2,
-                "layerType": "ArcGISTiledElevationServiceLayer"
-              }]
-            },
-            "version": "1.3",
-            "authoringApp": "WebSceneViewer",
-            "authoringAppVersion": "3.10.0.0",
-            "spatialReference": {
-              "wkid": 102100,
-              "latestWkid": 3857
-            },
-            "viewingMode": "global",
-            "initialState": {
-              "viewpoint": {
-                "scale": 45188197.847224146,
-                "rotation": 0,
-                "targetGeometry": {
-                  "x": 144770.99872895706,
-                  "y": 3232837.215000455,
-                  "spatialReference": {
-                    "wkid": 102100,
-                    "latestWkid": 3857
-                  },
-                  "z": -127.7412482528016
+              "baseMapLayers": [
+                {
+                  "id": "World_Hillshade_3805",
+                  "title": "World Hillshade",
+                  "url": "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer",
+                  "layerType": "ArcGISTiledMapServiceLayer"
                 },
-                "camera": {
-                  "position": {
-                    "x": 144770.99767624016,
-                    "y": 3182557.105058348,
-                    "spatialReference": {
-                      "wkid": 102100,
-                      "latestWkid": 3857
-                    },
-                    "z": 25512548.00000001
-                  },
-                  "heading": 0,
-                  "tilt": 0.0999986601088944
+                {
+                  "id": "VectorTile_2333",
+                  "title": "World Topographic Map",
+                  "layerType": "VectorTileLayer",
+                  "styleUrl": "https://cdn.arcgis.com/sharing/rest/content/items/7dc6cea0b1764a1f9af2e679f642f0f5/resources/styles/root.json"
                 }
-              },
+              ],
+              "id": "17490781d6a-basemap-1",
+              "title": "Topographic",
+              "elevationLayers": [
+                {
+                  "id": "globalElevation",
+                  "listMode": "hide",
+                  "title": "Terrain3D",
+                  "url": "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer",
+                  "layerType": "ArcGISTiledElevationServiceLayer"
+                }
+              ]
+            },
+            "ground": {
+              "layers": [
+                {
+                  "id": "globalElevation",
+                  "listMode": "hide",
+                  "title": "Terrain3D",
+                  "url": "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer",
+                  "layerType": "ArcGISTiledElevationServiceLayer"
+                }
+              ],
+              "transparency": 0,
+              "navigationConstraint": {
+                "type": "stayAbove"
+              }
+            },
+            "heightModelInfo": {
+              "heightModel": "gravity_related_height",
+              "heightUnit": "meter"
+            },
+            "version": "1.21",
+            "initialState": {
               "environment": {
                 "lighting": {
-                  "datetime": 1426420488000,
-                  "displayUTCOffset": 0
+                  "datetime": 1584297035000,
+                  "displayUTCOffset": -7
+                },
+                "atmosphereEnabled": true,
+                "starsEnabled": true
+              },
+              "viewpoint": {
+                "camera": {
+                  "position": {
+                    "spatialReference": {
+                      "latestWkid": 3857,
+                      "wkid": 102100
+                    },
+                    "x": -10869958.657730885,
+                    "y": 4489824.988560987,
+                    "z": 21453906.561298285
+                  },
+                  "heading": 0,
+                  "tilt": 0.1145563982611034
                 }
               }
             },
-            "presentation": {
-              "slides": []
-            }
+            "spatialReference": {
+              "latestWkid": 3857,
+              "wkid": 102100
+            },
+            "viewingMode": "global",
+            "authoringApp": "WebAppBuilder",
+            "authoringAppVersion": "2.18"
           };
           var text = dojoJson.stringify(data);
           var args = {
@@ -1324,6 +1420,89 @@ define([
         }
 
         return result;
+      },
+      getItemResources: function(portalUrl, appId, num) {
+        //num: Maximum number of resources
+        if (!num) {
+          num = 100;
+        }
+        portalUrl = portalUrlUtils.getStandardPortalUrl(portalUrl);
+        var resourcesUrl = portalUrlUtils.getItemResourceUrl(portalUrl, appId);
+        return esriRequest({
+          url: resourcesUrl,
+          content: {
+            f: 'json',
+            num: num
+          }
+        }).then(function(result) {
+          if (result && result.resources) {
+            return result.resources;
+          }
+        });
+      },
+      addResource: function(portalUrl, itemId, blobFile, _resourceName, _prefixName) {
+        // _resourceName example: abc.jpg,must have a file name suffix
+        portalUrl = portalUrlUtils.getStandardPortalUrl(portalUrl);
+        var portal = this.getPortal(portalUrl);
+
+        var formData = new FormData();
+        formData.append("file", blobFile, _resourceName);
+        formData.append("fileName", _resourceName);
+        formData.append("f", 'json');
+
+        var customResUrl = '';
+        if (_prefixName) {
+          formData.append("resourcesPrefix", _prefixName);
+          customResUrl = _prefixName + '/' + _resourceName;
+        } else {
+          customResUrl = _resourceName;
+        }
+        return portal.getItemById(itemId, true).then(function(item) {
+          var UserContentItemUrl = portalUrlUtils.getUserContentItemUrl(portalUrl, item.owner, itemId);
+          var addReourcesUrl = UserContentItemUrl + '/addResources';
+          return esriRequest({
+            url: addReourcesUrl,
+            form: formData
+          }).then(function(result) {
+            var resUrl = '';
+            if (result && result.success) {
+              resUrl = portalUrlUtils.getItemResourceUrl(portalUrl, '${itemId}', customResUrl);
+            }
+            return resUrl;
+          }, function(err) {
+            console.error(err.message || err);
+            return err;
+          });
+        });
+      },
+      removeResources: function(portalUrl, appId, _resourceName, _prefixName) {
+        var customResUrl = '';
+        if (_prefixName) {
+          customResUrl = _prefixName + '/' + _resourceName;
+        } else {
+          customResUrl = _resourceName;
+        }
+        var data = {
+          resource: customResUrl,
+          f: 'json'
+        };
+        portalUrl = portalUrlUtils.getStandardPortalUrl(portalUrl);
+        var portal = this.getPortal(portalUrl);
+        return portal.getItemById(appId, true).then(function(item) {
+          var UserContentItemUrl = portalUrlUtils.getUserContentItemUrl(portalUrl, item.owner, appId);
+          var removeResourcesUrl = UserContentItemUrl + '/removeResources';
+          return esriRequest({
+            url: removeResourcesUrl,
+            content: data
+          }, {
+            usePost: true
+          }).then(function(result) {
+            return result;
+          }, function(err) {
+            console.error(err.message || err);
+            return err;
+          });
+        });
       }
     };
 

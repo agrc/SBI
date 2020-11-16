@@ -1,7 +1,7 @@
 define({
   "_widgetLabel": "Başlık",
-  "signin": "Oturum Açma",
-  "signout": "Oturum Kapat",
+  "signin": "Oturum aç",
+  "signout": "Oturumu kapat",
   "about": "Hakkında",
   "signInTo": "Şurada oturum aç:",
   "cantSignOutTip": "Bu işlev ön izleme modunda yok."

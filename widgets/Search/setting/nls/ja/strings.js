@@ -1,6 +1,6 @@
 define({
   "sourceSetting": "検索ソースの設定",
-  "instruction": "ジオコード サービスまたはフィーチャ レイヤーを検索ソースとして追加および構成します。 指定されたこれらのソースは、検索ボックス内で検索可能な対象を決定します。",
+  "instruction": "ジオコード サービスまたはフィーチャ レイヤーを検索ソースとして追加および構成します。指定されたこれらのソースは、検索ボックス内で検索可能な対象を決定します。",
   "add": "検索ソースの追加",
   "addGeocoder": "ジオコーダーの追加",
   "geocoder": "ジオコーダー",
@@ -12,14 +12,15 @@ define({
   "countryCodeEg": "例: ",
   "countryCodeHint": "この値を空白のままにすると、すべての国および地域を検索します",
   "generalSetting": "一般設定",
-  "allPlaceholder": "すべてを検索するためのプレースホルダー テキスト: ",
+  "allPlaceholder": "標準のプレースホルダー テキスト: ",
   "showInfoWindowOnSelect": "検出されたフィーチャまたは位置のポップアップを表示",
+  "showInfoWindowOnSelect2": "フィーチャまたは位置が見つかった場合にポップアップを表示",
   "searchInCurrentMapExtent": "現在のマップ範囲内のみを検索",
   "zoomScale": "ズーム縮尺",
   "locatorUrl": "ジオコーダーの URL",
   "locatorName": "ジオコーダー名",
   "locatorExample": "例",
-  "locatorWarning": "このジオコーディング サービスのバージョンはサポートされていません。ウィジェットは、10.0 以上のジオコーディング サービスをサポートしています。",
+  "locatorWarning": "このジオコーディング サービスのバージョンはサポートされていません。ウィジェットは、10.1 以上のジオコーディング サービスをサポートしています。",
   "locatorTips": "ジオコーディング サービスがヒント機能をサポートしていないため、ヒントは使用できません。",
   "layerSource": "レイヤー ソース",
   "searchLayerTips": "フィーチャ サービスがページネーション機能をサポートしていないため、ヒントは使用できません。",
@@ -42,5 +43,8 @@ define({
   "fieldAlias": "エイリアス",
   "ok": "OK",
   "cancel": "キャンセル",
-  "invalidUrlTip": "URL ${URL} は無効であるか、アクセスできません。"
+  "invalidUrlTip": "URL ${URL} は無効であるか、アクセスできません。",
+  "locateResults": "結果の表示",
+  "panTo": "画面移動",
+  "zoomToScale": "ズームして拡大/縮小"
 });

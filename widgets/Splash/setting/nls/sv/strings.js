@@ -10,9 +10,9 @@ define({
   "confirmOption": "Visa alltid denna startskärm när som appen startas",
   "backgroundColor": "Bakgrundsfärg",
   "content": "Innehåll",
-  "contentDescription": "Ange vilket innehåll som ska visas på startskärmen",
+  "contentDescription": "Ange vilket innehåll som ska visas på startskärmen.",
   "appearance": "Utseende",
-  "appearanceDescription": "Ange visningsinställningar för startskärmen",
+  "appearanceDescription": "Ange visningsinställningar för startskärmen.",
   "size": "Storlek",
   "width": "Bredd",
   "height": "Höjd",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Bildfyllning",
   "chooseFile": "Välj fil",
   "noFileChosen": "Ingen fil har valts",
-  "transparency": "Transparens",
   "sizeFill": "Fyllning",
   "sizeFit": "Anpassa",
   "sizeStretch": "Sträck ut för utfyllning",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Knappfärg",
   "buttonText": "Knapptext",
   "buttonTextColor": "Textfärg för knappar",
+  "contentAlign": "Innehållsjustering",
+  "alignTop": "Övre",
+  "alignMiddle": "Mitten",
   "maskColor": "Maskfärg",
   "options": "Alternativ",
-  "optionsDescription": "Ange beteendeinställningar för startskärmen"
+  "optionsDescription": "Ange beteendeinställningar för startskärmen."
 });

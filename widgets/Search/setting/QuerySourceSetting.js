@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2015 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
     _suggestible: false,
 
     _clickSet: false,
+    _defaultZoomScale: null,
 
     //event
     //reset-query-source
@@ -66,6 +67,7 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
     postCreate: function() {
       this.inherited(arguments);
 
+      this.zoomScale.set('placeHolder', window.jimuNls.common.defaults);
       this.exactMatch = new CheckBox({
         checked: false,
         label: this.nls.exactMatch
@@ -79,6 +81,8 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
       this._fieldsCheckBox = [];
 
       this._setMessageNodeContent("");
+      this.own(on(this.panToRadio, 'click', lang.hitch(this, this._onRadioClicke)));
+      this.own(on(this.zoomToRadio, 'click', lang.hitch(this, this._onRadioClicke)));
     },
 
     setDefinition: function(definition) {
@@ -156,8 +160,9 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
         displayField: this.displayField.get('value'),// defaults to FeatureLayer.displayField
         exactMatch: this.exactMatch.getValue(),
         searchInCurrentMapExtent: this.searchInCurrentMapExtent.checked,
-        zoomScale: this.zoomScale.get('value') || 50000,
-        maxSuggestions: this.maxSuggestions.get('value') || 6,
+        panToScale: this.panToRadio.get('checked') ? true : false,
+        zoomScale: this.zoomScale.get('value') || this._defaultZoomScale,
+        maxSuggestions: this.maxSuggestions.get('value'),
         maxResults: this.maxResults.get('value') || 6,
         type: 'query'
       };
@@ -188,7 +193,7 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
     _disableSourceItems: function() {
       this.sourceName.set('disabled', true);
       this.placeholder.set('disabled', true);
-      this.searchFields.set('disabled', true);
+      //this.searchFields.set('disabled', true);
       html.setStyle(this.fieldsSelectorNode, 'display', 'none');
       this.displayField.set('disabled', true);
       this.maxSuggestions.set('disabled', true);
@@ -199,12 +204,12 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
     _enableSourceItems: function() {
       this.sourceName.set('disabled', false);
       this.placeholder.set('disabled', false);
-      this.searchFields.set('disabled', false);
+      //this.searchFields.set('disabled', false);
       html.setStyle(this.fieldsSelectorNode, 'display', 'inline-block');
       this.displayField.set('disabled', false);
       this.maxSuggestions.set('disabled', false);
       this.maxResults.set('disabled', false);
-      this.zoomScale.set('disabled', false);
+      this._controlZoomScaleTextBox();
     },
 
     _setSourceItems: function() {
@@ -217,8 +222,15 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
       this.displayField.set('value', this.config.displayField || "");
       this.exactMatch.setValue(!!this.config.exactMatch);
       this.searchInCurrentMapExtent.setValue(!!this.config.searchInCurrentMapExtent);
-      this.zoomScale.set('value', this.config.zoomScale || 50000);
-      this.maxSuggestions.set('value', this.config.maxSuggestions || 6);
+      if(this.config.panToScale) {
+        //html.setAttr(this.panToRadio, 'checked', '');
+        this.panToRadio.set('checked', true);
+      } else {
+        //html.setAttr(this.zoomToRadio, 'checked', '');
+        this.zoomToRadio.set('checked', true);
+      }
+      this.zoomScale.set('value', this.config.zoomScale || this._defaultZoomScale);
+      this.maxSuggestions.set('value', this.config.maxSuggestions);
       this.maxResults.set('value', this.config.maxResults || 6);
       this._layerId = this.config.layerId;
 
@@ -230,6 +242,7 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
       } else {
         this._hideSuggestibleTips();
       }
+      /*
       var isPointLayer = this._layerDefinition &&
         this._layerDefinition.geometryType === 'esriGeometryPoint';
       if (!isPointLayer) {
@@ -237,6 +250,7 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
       } else {
         html.setStyle(this.zoomScaleTr, 'display', '');
       }
+      */
       this._enableSourceItems();
     },
 
@@ -404,7 +418,7 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
           searchFields: [],
           displayField: this._layerDefinition.displayField || "",
           exactMatch: false,
-          zoomScale: 50000, //default
+          zoomScale: this._defaultZoomScale, //default
           maxSuggestions: 6, //default
           maxResults: 6,//default
           type: "query"
@@ -527,6 +541,19 @@ function(declare, html, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
           }), 100);
         }
       }
+    },
+
+    _controlZoomScaleTextBox: function() {
+      if(this.panToRadio.get('checked')){
+        this.zoomScale.set("disabled", true);
+      } else if(this.zoomToRadio.get('checked')){
+        this.zoomScale.set("disabled", false);
+      }
+    },
+
+    _onRadioClicke: function() {
+      this._controlZoomScaleTextBox();
     }
+
   });
 });

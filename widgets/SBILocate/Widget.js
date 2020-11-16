@@ -12,6 +12,8 @@ define([
     'dojo/on',
     'dojo/string',
 
+    'esri/config',
+
     'esri/symbols/SimpleMarkerSymbol',
     'esri/symbols/SimpleFillSymbol',
     'esri/symbols/SimpleLineSymbol',
@@ -38,6 +40,8 @@ define([
     on,
     dojoString,
 
+    esriConfig,
+
     SimpleMarkerSymbol,
     SimpleFillSymbol,
     SimpleLineSymbol,
@@ -63,8 +67,8 @@ define([
         zoomLevel: 12,
         apiKey: null,
         wkid: null,
-        geocode_url_template: '//api.mapserv.utah.gov/api/v1/Geocode/{street}/{zone}',
-        search_url_template: '//api.mapserv.utah.gov/api/v1/Search/{featureClass}/shape@',
+        geocode_url_template: 'https://api.mapserv.utah.gov/api/v1/Geocode/{street}/{zone}',
+        search_url_template: 'https://api.mapserv.utah.gov/api/v1/Search/{featureClass}/shape@',
 
         // inline: Boolean (optional)
         //      Controls if form is inline or normal (default) layout
@@ -111,6 +115,10 @@ define([
 
         postCreate: function () {
             console.info('SBILocate::postCreate', arguments);
+
+            esriConfig.defaults.io.useCors = true;
+            esriConfig.defaults.io.corsEnabledServers.push('api.mapserv.utah.gov');
+            esriConfig.defaults.io.corsDetection = false;
 
             this.form.onsubmit = function () {
                 return false;
@@ -204,7 +212,7 @@ define([
                     });
                 }
 
-                query.predicate = 'GRID_NAME = \'' + zone + '\'';
+                query.predicate = 'GRID_NAME=\'' + zone + '\'';
             }
 
             var url = lang.replace(this.search_url_template, {featureClass: featureClass});
@@ -218,7 +226,7 @@ define([
             // summary:
             //      calls the web service
             // description:
-            //      sends the request to the wsut webservice
+            //      sends the request to the web api
             // tags:
             //      private
             // returns:
@@ -235,7 +243,7 @@ define([
             return esriRequest({
                 url: url,
                 content: options,
-                callbackParamName: 'callback'
+                handleAs: 'json'
             });
         },
 

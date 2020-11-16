@@ -10,9 +10,9 @@ define({
   "confirmOption": "每次啟動應用程式時一律顯示此啟動畫面",
   "backgroundColor": "背景顏色",
   "content": "內容",
-  "contentDescription": "定義啟動畫面上顯示的內容",
+  "contentDescription": "定義啟動畫面上顯示的內容。",
   "appearance": "外觀",
-  "appearanceDescription": "設定啟動畫面的外觀",
+  "appearanceDescription": "設定啟動畫面的外觀。",
   "size": "尺寸",
   "width": "寬度",
   "height": "高度",
@@ -22,7 +22,6 @@ define({
   "imageFill": "圖片填充",
   "chooseFile": "選擇檔案",
   "noFileChosen": "未選擇檔案",
-  "transparency": "幻燈片",
   "sizeFill": "填充",
   "sizeFit": "適合",
   "sizeStretch": "縮放以填充",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "按鈕顏色",
   "buttonText": "按鈕文字",
   "buttonTextColor": "按鈕文字顏色",
+  "contentAlign": "內容對齊",
+  "alignTop": "頂部",
+  "alignMiddle": "中央",
   "maskColor": "面罩顏色",
   "options": "選項",
-  "optionsDescription": "設定啟動畫面的行為"
+  "optionsDescription": "設定啟動畫面的行為。"
 });

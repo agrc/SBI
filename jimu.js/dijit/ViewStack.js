@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,13 +15,14 @@
 ///////////////////////////////////////////////////////////////////////////
 
 define(['dojo/_base/declare',
+  "dojo/_base/fx",
   'dojo/_base/lang',
   'dojo/_base/html',
   'dojo/_base/array',
   'dijit/_WidgetBase'
 ],
 
-function(declare, lang, html, array, _WidgetBase) {
+function(declare, basefx, lang, html, array, _WidgetBase) {
   return declare(_WidgetBase, {
     // summary:
     //    a dijit which can hold many views but display only one at on time
@@ -130,15 +131,27 @@ function(declare, lang, html, array, _WidgetBase) {
         }
         if(_v === view){
           html.setStyle(dom, 'display', 'block');
-          if(_v.domNode && !_v._started){
-            _v.startup();
-            _v._started = true;
+          basefx.fadeIn({node: dom}).play();
+
+          if(_v.domNode){
+            if(!_v._started){
+              _v.startup();
+              _v._started = true;
+            }else if(typeof _v.onShown === 'function'){
+              _v.onShown();
+            }
           }
         }
         else{
           html.setStyle(dom, 'display', 'none');
+          basefx.fadeOut({node: dom}).play();
+
+          if(_v.domNode && typeof _v.onHidden === 'function'){
+            _v.onHidden();
+          }
         }
       }));
+
       this._currentView = view;
       this.onViewSwitch(view);
     },

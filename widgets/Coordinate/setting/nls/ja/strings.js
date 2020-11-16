@@ -3,7 +3,9 @@ define({
   "state": "デフォルトでは、座標は現在のマップの座標系で表示されます。その他の座標系の座標を取得するには、座標系を追加して適切な変換方法を指定する必要があります。",
   "outputUnit": "出力単位",
   "wkid": "出力 WKID",
+  "defaultTitle": "既定",
   "label": "出力座標系名",
+  "alias": "ラベル",
   "transformationWkid": "変換 WKID",
   "transformationLabel": "変換ラベル",
   "transformForward": "正方向に変換",
@@ -30,6 +32,7 @@ define({
   "Default": "デフォルト",
   "Inches": "インチ",
   "Foot": "フィート",
+  "Foot_US": "Feet_US",
   "Yards": "ヤード",
   "Miles": "マイル",
   "Nautical_Miles": "海里",
@@ -39,7 +42,11 @@ define({
   "Kilometers": "キロメートル",
   "Decimeters": "デシメートル",
   "Decimal_Degrees": "度 (10 進)",
+  "Degrees_Decimal_Minutes": "度分 (10 進)",
   "Degree_Minutes_Seconds": "度分秒",
   "MGRS": "MGRS",
-  "USNG": "USNG"
+  "USNG": "USNG",
+  "displayOrderLonLatTips": "座標の表示順序:",
+  "lonLatTips": "経度/緯度 (X、Y)",
+  "latLonTips": "緯度/経度 (Y、X)"
 });

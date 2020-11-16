@@ -10,9 +10,9 @@ define({
   "confirmOption": "Afişaţi acest ecran de pornire de fiecare dată când este lansată aplicaţia",
   "backgroundColor": "Culoare fundal",
   "content": "Conţinut",
-  "contentDescription": "Definiţi conţinutul care este afişat pe ecranul de pornire",
+  "contentDescription": "Definiţi conţinutul care este afişat pe ecranul de pornire.",
   "appearance": "Aspect",
-  "appearanceDescription": "Setaţi aspectul ecranului de pornire",
+  "appearanceDescription": "Setaţi aspectul ecranului de pornire.",
   "size": "Dimensiune",
   "width": "Lăţime",
   "height": "Înălţime",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Umplere cu imagine",
   "chooseFile": "Alegere fişier",
   "noFileChosen": "Niciun fişier selectat",
-  "transparency": "Transparenţă",
   "sizeFill": "Umplere",
   "sizeFit": "Potrivire",
   "sizeStretch": "Întindere pentru umplere",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Culoare buton",
   "buttonText": "Culoare text",
   "buttonTextColor": "Culoare text de buton",
+  "contentAlign": "Aliniere conţinut",
+  "alignTop": "Sus",
+  "alignMiddle": "Mijloc",
   "maskColor": "Culoare mască",
   "options": "Opţiuni",
-  "optionsDescription": "Setaţi comportamentul ecranului de pornire"
+  "optionsDescription": "Setaţi comportamentul ecranului de pornire."
 });

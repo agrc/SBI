@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ define(['dojo/_base/declare',
   'dojo/_base/html',
   'dijit/_WidgetBase',
   'dijit/_Container',
+  "./a11y/BaseWidgetPanel",
   './dijit/LoadingIndicator',
   './BaseWidgetFrame',
   './utils'],
-function (declare, lang, array, html, _WidgetBase, _Container, LoadingIndicator,
-    BaseWidgetFrame, utils) {
-  return declare([_WidgetBase, _Container], {
+function (declare, lang, array, html, _WidgetBase, _Container, a11y, LoadingIndicator, BaseWidgetFrame, utils) {
+  var clazz = declare([_WidgetBase, _Container], {
     baseClass: 'jimu-panel jimu-container',
     started: false,
     state: 'closed',
@@ -60,16 +60,21 @@ function (declare, lang, array, html, _WidgetBase, _Container, LoadingIndicator,
       var configs = this.getAllWidgetConfigs();
       if(Array.isArray(this.config.widgets)){
         configs = this.config.widgets;
+        if(configs.length > 1){
+          this._addTagToGroupPanel();
+        }
       }else{
         configs = [this.config];
       }
-      array.forEach(configs, function(widgetConfig){
+      array.forEach(configs, function(widgetConfig, index){
         var frame, loading;
         if(widgetConfig.visible === false){
           return;
         }
         loading = new LoadingIndicator();
         frame = this.createFrame(widgetConfig);
+        this._initFrameEvents(frame, widgetConfig, index);
+
         this.addChild(frame);
         frame.setLoading(loading);
 
@@ -97,6 +102,12 @@ function (declare, lang, array, html, _WidgetBase, _Container, LoadingIndicator,
           return frames[i].getWidget();
         }
       }
+    },
+
+    getWidgets: function(){
+      return this.getChildren().map(function(f){
+        return f.getWidget();
+      });
     },
 
     createFrame: function(widgetSetting){
@@ -158,6 +169,8 @@ function (declare, lang, array, html, _WidgetBase, _Container, LoadingIndicator,
           this.widgetManager.openWidget(frame.getWidget());
         }
       }, this);
+      //focus first title
+      this._onOpenAndFocus();
     },
 
     onClose: function(){
@@ -271,4 +284,7 @@ function (declare, lang, array, html, _WidgetBase, _Container, LoadingIndicator,
       this.inherited(arguments);
     }
   });
+
+  clazz.extend(a11y);//for a11y
+  return clazz;
 });

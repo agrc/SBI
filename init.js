@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright ? 2014 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -71,24 +71,37 @@ var ie = (function() {
     }
 
     /*jshint unused:false*/
+    var hasOptions = {'extend-esri': 1};
+    if(!window.isMobileUa){
+      hasOptions['esri-featurelayer-webgl'] = 1; //enable webgl
+    }
     dojoConfig = {
       parseOnLoad: false,
       async: true,
       tlmSiblingOfDojo: false,
-      has: {
-        'extend-esri': 1
-      }
+      has: hasOptions
     };
 
     setLocale();
+
+    if(window.isRTL){
+      dojoConfig.has['dojo-bidi'] = true;
+    }
 
     resources = resources.concat([
       window.apiUrl + 'dojo/resources/dojo.css',
       window.apiUrl + 'dijit/themes/claro/claro.css',
       window.apiUrl + 'esri/css/esri.css',
-      window.apiUrl + 'dojox/layout/resources/ResizeHandle.css',
-      window.path + 'jimu.js/css/jimu-theme.css',
-      window.path + 'libs/caja-html-sanitizer-minified.js'
+      // window.apiUrl + 'dojox/layout/resources/ResizeHandle.css',
+      window.path + 'jimu.js/css/jimu-theme.css'
+      //window.path + 'libs/caja-html-sanitizer-minified.js'
+      //window.path + 'libs/moment/twix.js',
+      //window.path + 'libs/Sortable.js',
+      // window.path + 'libs/cropperjs/cropperjs.js',
+      // window.path + 'libs/cropperjs/cropper.css',
+      // //because we have jimu/dijit/GridLayout dijit, so we import this css here
+      // window.path + 'libs/goldenlayout/goldenlayout-base.css',
+      // window.path + 'libs/goldenlayout/goldenlayout-light-theme.css'
     ]);
 
     if (window.apiUrl.substr(window.apiUrl.length - 'arcgis-js-api/'.length,
@@ -114,6 +127,12 @@ var ie = (function() {
       }, {
         name: "dgrid",
         location: window.apiUrl + "dgrid"
+      }, {
+        name: "dgrid1",
+        location: window.apiUrl + "dgrid1"
+      }, {
+        name: "dstore",
+        location: window.apiUrl + "dstore"
       }, {
         name: "moment",
         location: window.apiUrl + "moment"
@@ -169,6 +188,13 @@ var ie = (function() {
       layoutId: 'jimu-layout-manager',
       mapId: 'map'
     };
+    jimuConfig.lazyLoadCss = [
+      // 'xstyle/css!' + window.apiUrl + 'dojo/resources/dojo.css',
+      // 'xstyle/css!' + window.apiUrl + 'dijit/themes/claro/claro.css',
+      // 'xstyle/css!' + window.apiUrl + 'esri/css/esri.css',
+      'xstyle/css!' + window.apiUrl + 'dojox/layout/resources/ResizeHandle.css'
+      //'xstyle/css!' + window.path + 'jimu.js/css/jimu-theme.css'
+    ];
 
     loadResources(resources, null, function(url, loaded) {
       if (typeof loadingCallback === 'function') {
@@ -182,7 +208,7 @@ var ie = (function() {
           if (window.console){
             console.log('Waiting for API loaded.');
           }
-          setTimeout(continueLoad, 100);
+          setTimeout(continueLoad, 50);
           return;
         }
 
@@ -192,7 +218,7 @@ var ie = (function() {
           require(['dojo/aspect', 'dojo/request/util'], function(aspect, requestUtil) {
             window.avoidRequestCache(aspect, requestUtil);
 
-            require(['jimu/main', 'libs/main'], function(jimuMain) {
+            require(['jimu/main'/*, 'libs/main'*/], function(jimuMain) {
               //loadingCallback('jimu', resources.length + 1, resources.length);
               jimuMain.initApp();
             });
@@ -204,7 +230,8 @@ var ie = (function() {
 
   function setLocale(){
     if(window.queryObject.locale){
-      dojoConfig.locale = window.queryObject.locale.toLowerCase();
+      var locale = window.queryObject.locale.toLowerCase();
+      dojoConfig.locale = ['hi'].indexOf(locale) >= 0 ? 'en' : locale;
       window._setRTL(dojoConfig.locale);
       return;
     }
@@ -233,6 +260,7 @@ var ie = (function() {
     }
 
     dojoConfig.locale = dojoConfig.locale.toLowerCase();
+    dojoConfig.locale = ['hi'].indexOf(dojoConfig.locale) >= 0 ? 'en' : dojoConfig.locale;
     window._setRTL(dojoConfig.locale);
   }
 })();

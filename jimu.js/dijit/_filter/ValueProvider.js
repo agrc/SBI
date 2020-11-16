@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,17 +23,20 @@ define([
   'dojo/_base/declare',
   'dijit/_WidgetBase',
   'dijit/_TemplatedMixin',
-  'jimu/utils'
+  'jimu/FilterManager',
+  'jimu/utils',
+  'esri/lang'
 ],
-  function(on, Evented, lang, html, array, declare, _WidgetBase, _TemplatedMixin, jimuUtils) {
+  function(on, Evented, lang, html, array, declare, _WidgetBase, _TemplatedMixin, FilterManager, jimuUtils, esriLang) {
 
     return declare([_WidgetBase, _TemplatedMixin, Evented], {
       baseClass: 'jimu-filter-value-provider',
-      codedValues: null,
       fieldName: null,
       shortType: null,
       _enabled: false,
-      cascade: false,
+      cascade: "none",//none,previous,all
+      filterCodedValue: false,
+      fieldPopupInfo: null,//maybe null
 
       //options
       nls: null,
@@ -41,7 +44,15 @@ define([
       layerDefinition: null,
       fieldInfo: null,
       partObj: null,
+      runtime: true,//If true, means used at widget runtime. If false, means used in widget setting page.
+      //partObj.valueObj.type must be set
+      //partObj.valueObj.value, partObj.valueObj.value1 and partObj.valueObj.value2 are optional
+      staticValues: null,//[{value,label}]
+      codedValues: null,//[{value,label}] for coded values and sub types
       layerInfo: null,//optional, jimu/LayerInfos/LayerInfo
+      popupInfo: null,//optional
+      operatorInfo: null,
+      filterCodedValueIfPossible: false,
 
       //partObj
       /*{
@@ -87,6 +98,30 @@ define([
         this.shortType = this.partObj.fieldObj.shortType;
         this.fieldName = this.partObj.fieldObj.name;
         this.cascade = this.partObj.interactiveObj && this.partObj.interactiveObj.cascade;
+        if(this.runtime && this.codedValues && this.filterCodedValueIfPossible &&
+          jimuUtils.isCodedValuesSupportFilter(this.layerDefinition, this.codedValues.length)){
+          this.filterCodedValue = true;
+        }else{
+          this.filterCodedValue = false;
+        }
+        if(this.popupInfo){
+          if(this.popupInfo.fieldInfos && this.popupInfo.fieldInfos.length > 0){
+            array.some(this.popupInfo.fieldInfos, lang.hitch(this, function(fieldPopupInfo){
+              if(fieldPopupInfo.fieldName === this.fieldName){
+                this.fieldPopupInfo = fieldPopupInfo;
+                return true;
+              }else{
+                return false;
+              }
+            }));
+          }
+        }
+      },
+
+      postCreate: function(){
+        this.inherited(arguments);
+        //get filter manager instance
+        this.filterManager = FilterManager.getInstance();
       },
 
       getDijits: function(){
@@ -105,11 +140,26 @@ define([
             html.addClass(dijit.domNode, dijit.declaredClass.replace(/\./g, '-'));
           }
           this.own(on(dijit, 'change', lang.hitch(this, this._onChanged)));
+          this.own(on(dijit, 'enter', lang.hitch(this, this._onEnter)));
         }));
       },
 
       _onChanged: function(){
+        if(this._onEnterTriggered){
+          return;
+        }
         this.emit('change');
+      },
+
+      _onEnterTriggered: false,
+
+      _onEnter: function(){
+        this._onEnterTriggered = true;
+        this.emit('change');
+        this.emit('enter');
+        setTimeout(lang.hitch(this, function(){
+          this._onEnterTriggered = false;
+        }), 100);
       },
 
       tryLocaleNumber: function(value) {
@@ -135,6 +185,13 @@ define([
 
       getValueObject: function(){},
 
+      //used for _SingleFilter
+      tryGetValueObject: function(){
+        return this.getValueObject();
+      },
+
+      setRequired: function(){},
+
       //-1 means invalid value type
       //0 means empty value, this ValueProvider should be ignored
       //1 means valid value
@@ -143,7 +200,11 @@ define([
         var dijits = this.getDijits();
         if(dijits.length > 0){
           var statusArr = array.map(dijits, lang.hitch(this, function(dijit){
-            return this.getStatusForDijit(dijit);
+            if(typeof dijit.getStatus === 'function'){
+              return dijit.getStatus();
+            }else{
+              return this.getStatusForDijit(dijit);
+            }
           }));
           status = Math.min.apply(statusArr, statusArr);
         }
@@ -177,10 +238,15 @@ define([
         return this.getStatus() > 0;
       },
 
+      isBlankValueProvider: function(){
+        return false;
+      },
+
+      //Filter related dijits doesn't call this method. GroupFilter and some other widgets call it.
       getFilterExpr: function(){
         var expr = "1=1";
         var expr1 = this.getLayerFilterExpr();
-        if(this.cascade){
+        if(this.cascade === "all" || this.cascade === "previous"){
           var expr2 = this.getCascadeFilterExpr();
           expr = "(" + expr1 + ") AND (" + expr2 + ")";
         }else{
@@ -189,6 +255,7 @@ define([
         return expr;
       },
 
+      //This method id only called by getFilterExpr.
       getLayerFilterExpr: function(){
         var expr = "1=1";
         if(this.layerInfo){
@@ -200,8 +267,86 @@ define([
         return expr;
       },
 
+      _getWebMapFilterExpr: function(){
+        var expr = "";
+        if(this.layerInfo){
+          expr = this.layerInfo.getFilterOfWebmap();
+        }
+        if(!expr){
+          expr = "1=1";
+        }
+        return expr;
+      },
+
+      //used for ListValueProvider, advancedLisValueProvider. 
+      //For runtime, honor layer's filters configured by webmap & other widgets)
+      getDropdownFilterExpr: function(excludeWidgetId){
+        var expr = "1=1";
+        var expr1 = this.layerInfo && this.runtime && excludeWidgetId ?
+          this.filterManager.getFilterExp(this.layerInfo.id, excludeWidgetId) :
+          this._getWebMapFilterExpr();
+        if(this.cascade === "all" || this.cascade === "previous"){
+          var expr2 = this.getCascadeFilterExpr();
+          expr = expr1 ? "(" + expr1 + ") AND (" + expr2 + ")" : "(" + expr2 + ")";
+        }else if(expr1){
+          expr = expr1;
+        }
+        return expr;
+      },
+
       getCascadeFilterExpr: function(){
         return "1=1";
+      },
+
+      getDropdownFilterPartsObj: function(){
+        var partsObj = {parts:[]};
+        if(this.cascade === "all" || this.cascade === "previous"){
+          partsObj = this.getCascadeFilterPartsObj();
+        }
+        return partsObj;
+      },
+
+      getCascadeFilterPartsObj: function(){
+        return {};
+      },
+
+      //get codedvalue list by partsObj
+      //partsObj: eg: {logicalOperator:"AND",parts:[]}
+      getCodedValueListByPartsObj: function(layerDefinition, fieldName, partsObj, /*optional*/codedValues){
+        var fieldInfo = jimuUtils.getFieldInfoByFieldName(layerDefinition.fields, fieldName);
+        var typeIdField = layerDefinition.typeIdField;
+        var valueLabels = null;
+        var typeIdFieldValue;
+
+        var parts = partsObj.parts;
+        for(var key in parts){
+          var part = parts[key];
+          if(part.fieldObj.name === typeIdField){ //not considering the subtypeid exists twice or more
+            typeIdFieldValue = part.valueObj.value;
+            valueLabels = jimuUtils._getCodedValueBySubTypeId(layerDefinition, fieldName, typeIdFieldValue, fieldInfo);
+            break;
+          }
+        }
+
+        var selectedValue;
+        if(!valueLabels){
+          if(codedValues){
+            valueLabels = codedValues;
+          }else{
+            valueLabels = jimuUtils._getAllCodedValue(layerDefinition, fieldInfo);
+          }
+        }
+        if(valueLabels && valueLabels.length > 0){
+          selectedValue = valueLabels[0].value;
+        }
+        return {
+          selectedValue: selectedValue,
+          valueLabels: valueLabels
+        };
+      },
+
+      isDefined: function(value){
+        return esriLang.isDefined(value);
       },
 
       disable: function(){
@@ -214,6 +359,10 @@ define([
 
       isEnabled: function(){
         return this._enabled;
+      },
+
+      destroy: function(){
+        this.inherited(arguments);
       }
 
     });

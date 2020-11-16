@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -73,22 +73,9 @@ function(
     },
 
     setNodes: function(newNodes){
-      var isEqual = false;
-      //check if old nodes and new nodes are equal
-      if(this.nodes.length !== newNodes.length){
-        isEqual = false;
-      }else{
-        isEqual = array.every(this.nodes, function(node){
-          return array.some(newNodes, function(targetNode){
-            return node.id === targetNode.id;
-          });
-        });
-      }
-      if(!isEqual){
-        this.nodes = newNodes;
-        this.oldGridParam = null;
-        this.resize();
-      }
+      this.nodes = newNodes;
+      this.oldGridParam = null;
+      this.resize();
     },
 
     resize: function() {
@@ -97,12 +84,8 @@ function(
         html.setStyle(this.domNode, utils.getPositionStyle(gridParam.position));
         this.nodeWidth = gridParam.cellSize - this.margin;
 
-        if(!this.oldGridParam || this.oldGridParam.rows !== gridParam.rows ||
-            this.oldGridParam.cols !== gridParam.cols){
-          //grid changed, re-create the pages
-          this.clearPages();
-          this.createPages(gridParam);
-        }
+        this.clearPages();
+        this.createPages(gridParam);
 
         array.forEach(query('.icon-node', this.domNode), lang.hitch(this, function(node, i) {
           this.setItemNodePosition(node, i, gridParam);

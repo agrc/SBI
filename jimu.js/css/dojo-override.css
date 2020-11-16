@@ -54,6 +54,7 @@
   line-height: 26px !important;
   font-size: 14px;
 }
+/*nav-mode, update input dijit styles*/
 .claro .dijitTextBox .dijitPlaceHolder{
   height: 28px;
   font-size: 14px;
@@ -62,8 +63,53 @@
   border-color: #51b1fe !important;
   box-shadow: 0px 0px 5px #51b1fe;
 }
+.claro.jimu-nav-mode .dijitTextBoxFocused {
+  box-shadow: none;
+  border-color: transparent !important;/*use focus outline & clear current border*/
+  outline: 2px solid #24B5CC !important;
+}
+.claro.jimu-nav-mode .dijitTextBoxFocused *:focus {
+  outline: none !important; /*ff can't read focus style, so hide it*/
+}
+
 .claro .dijitTextBoxHover{
   border-color: #759dc0;
+}
+.claro .jimu-list-multiple-select .searchKeyInput .dijitTextBox{
+  height: 25px;
+  border: none;
+  border-bottom: 1px solid #ccc;
+}
+.claro .jimu-list-multiple-select .searchKeyInput .dijitTextBox .dijitInputInner{
+  height: 21px;
+  line-height: 21px !important;
+  font-size: 12px;
+}
+
+.claro.jimu-nav-mode .jimu-list-multiple-select .searchKeyInput .dijitTextBox .dijitInputContainer,
+.claro.jimu-nav-mode .jimu-list-multiple-select .searchKeyInput .dijitTextBox .dijitInputInner {
+  padding: 0 !important;
+  height: 25px;
+}
+
+.claro .jimu-list-multiple-select .searchKeyInput .dijitTextBox .dijitPlaceHolder{
+  height: 21px;
+  font-size: 12px;
+}
+.claro .jimu-list-multiple-select .searchKeyInput .dijitTextBox .dijitInputField {
+  font-size: 13px;
+  line-height: 25px;
+  padding: 1px 0;
+}
+.claro .jimu-list-multiple-select .searchKeyInput .dijitTextBoxHover{
+  border-color: #24B5CC;
+  background-color: initial !important;
+  background-image: none;
+}
+.claro .jimu-list-multiple-select .searchKeyInput .dijitTextBoxFocused{
+  border-color: #24B5CC !important;
+  box-shadow: none;
+  background-image: none;
 }
 .claro .dijitValidationTextBox .dijitValidationContainer,
 .claro .dijitSpinner .dijitSpinnerButtonContainer,
@@ -131,10 +177,96 @@ table.dijitDownArrowButton.dijitSelect.restrict-select-width > tbody > tr > td.d
 
 /* dgrid*/
 .jimu-rtl .dgrid-rtl-swap .dgrid-header-row {
-    right: 0;
-    left: 17px;
+  right: 0;
+  left: 17px;
 }
- .jimu-rtl .dgrid-cell {
+.jimu-rtl .dgrid-cell {
   border-right-style: none;
   border-left: solid 1px #ccc;
- }
+  text-align: right;
+}
+
+.jimu-rtl .dgrid-sort-arrow {
+  float: left;
+}
+
+ /* radio button */
+.claro .dijitRadio{
+  width: 16px;
+  height: 16px;
+  background-image: url(images/radioBtn_normal.png);
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: text-bottom;
+}
+.claro .dijitRadio.dijitRadioChecked{
+  background-image: url(images/radioBtn_selected.png);
+}
+.claro .dijitRadio +.dijitFocusedLabel{
+  outline: none;
+}
+.claro .dijitRadio.dijitDisabled {
+  background-image: url(images/radioBtn_disabled.png);
+}
+.claro .dijitRadio.dijitDisabled.dijitRadioCheckedDisabled {
+  background-image: url(images/radioBtn_selected_diabled.png);
+}
+.claro .dijitRadio.dijitDisabled +label{
+  opacity: 0.65;
+  color: #ccc;
+}
+.claro.jimu-nav-mode .dijitRadio.dijitRadioFocused{
+  width: 20px !important;
+  height: 20px !important;
+  margin-left: -2px;
+  margin-top: -2px;
+  background-image: url(images/radioBtn_selected_focusd.png);
+  background-size: 20px 20px;
+}
+.jimu-rtl .claro.jimu-nav-mode .dijitRadio.dijitRadioFocused{
+  margin-left: 0;
+  margin-right: 3px;
+}
+/* checkbox */
+.claro .dijitCheckBox{
+  background-image: url(images/checkbox_default.png);
+  background-repeat: no-repeat;
+  background-position: 0;
+  background-color: transparent;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  /*cursor: pointer;*/
+}
+.claro .dijitCheckBox.dijitCheckBoxChecked {
+  background-image: url(images/checked_default.png);
+}
+.claro .dijitCheckBox.dijitDisabled{
+  background-image: url(images/checkbox_disabled.png);
+}
+.claro .dijitCheckBox.dijitCheckBoxChecked.dijitDisabled{
+  background-image: url(images/checked_disabled.png);
+}
+.claro .dijitCheckBox +.dijitFocusedLabel{
+  outline: none;
+}
+.claro.jimu-nav-mode .dijitCheckBox.dijitCheckBoxFocused{
+  outline: 2px solid #24B5CC !important;
+}
+
+.claro .dijitTooltipContainer.dijitTooltipContents{
+  padding-right: 20px;
+}
+
+/*
+.claro .dijitCheckBox:hover{
+  background-color: #f7f7f7;
+}
+.claro .dijitCheckBox:hover{
+  background-image: url(images/checkbox_hover.png);
+}
+.claro .dijitCheckBox.dijitCheckBoxChecked:hover{
+  background-image: url(images/checked_hover.png);
+}
+*/

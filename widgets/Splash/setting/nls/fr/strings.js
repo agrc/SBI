@@ -10,9 +10,9 @@ define({
   "confirmOption": "Toujours afficher cet écran de présentation à chaque lancement de l'application",
   "backgroundColor": "Couleur d'arrière-plan",
   "content": "Contenu",
-  "contentDescription": "Définir le contenu qui apparaît sur l'écran de présentation",
+  "contentDescription": "Définir le contenu qui apparaît sur l'écran de présentation.",
   "appearance": "Apparence",
-  "appearanceDescription": "Configurer l'apparence de l'écran de présentation",
+  "appearanceDescription": "Configurer l'apparence de l'écran de présentation.",
   "size": "Taille",
   "width": "Largeur",
   "height": "Hauteur",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Image de remplissage",
   "chooseFile": "Choisir le fichier",
   "noFileChosen": "Aucun fichier sélectionné",
-  "transparency": "Transparence",
   "sizeFill": "Remplissage",
   "sizeFit": "Ajuster",
   "sizeStretch": "Etirer pour remplir la zone",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Couleur du bouton",
   "buttonText": "Texte du bouton",
   "buttonTextColor": "Couleur de texte du bouton",
+  "contentAlign": "Alignement du contenu",
+  "alignTop": "Haut",
+  "alignMiddle": "Milieu",
   "maskColor": "Couleur du masque",
   "options": "Options",
-  "optionsDescription": "Configurer le comportement de l'écran de présentation"
+  "optionsDescription": "Configurer le comportement de l'écran de présentation."
 });

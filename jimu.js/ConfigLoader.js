@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,11 +24,13 @@ define([
   'dojo/Deferred',
   'dojo/promise/all',
   'dojo/request/xhr',
+  'dojo/request/script',
   './utils',
   './WidgetManager',
   './shared/utils',
   './tokenUtils',
   './portalUtils',
+  './appConfigResourceUtils',
   './portalUrlUtils',
   './AppStateManager',
   'esri/IdentityManager',
@@ -37,8 +39,8 @@ define([
   'esri/arcgis/utils'
 ],
 function (declare, lang, array, html, dojoConfig, cookie,
-  Deferred, all, xhr, jimuUtils, WidgetManager, sharedUtils, tokenUtils,
-  portalUtils, portalUrlUtils, AppStateManager, IdentityManager, esriConfig, esriUrlUtils,
+  Deferred, all, xhr, dojoScript, jimuUtils, WidgetManager, sharedUtils, tokenUtils,
+  portalUtils, appConfigResourceUtils, portalUrlUtils, AppStateManager, IdentityManager, esriConfig, esriUrlUtils,
   arcgisUtils) {
   var instance = null, clazz;
 
@@ -97,9 +99,13 @@ function (declare, lang, array, html, dojoConfig, cookie,
         if(this.urlParams.id){
           return this.loadWidgetsManifest(appConfig).then(lang.hitch(this, function() {
             return this.loadAndUpgradeAllWidgetsConfig(appConfig);
+          })).then(lang.hitch(this, function(appConfig) {
+            return this.updateNecessaryAttrOfResourceUrlInAppConfig(appConfig, this.urlParams.id);
           })).then(lang.hitch(this, function() {
             this._configLoaded = true;
             this._setDocumentTitle(appConfig);
+
+            this._readAndSetSharedTheme(appConfig);
             return this.getAppConfig();
           }));
         }else{
@@ -124,10 +130,19 @@ function (declare, lang, array, html, dojoConfig, cookie,
                   }));
                 }));
               }else{
-                return this._getAppConfigFromTemplateAppId(appConfig.portalUrl,
-                this.urlParams.appid).then(lang.hitch(this, function(appConfig){
-                  this._tryUpdateAppConfigByLocationUrl(appConfig);
-                  return this._processInPortalAppProtocol(appConfig);
+                // checkEssentialAppsLicense
+                var portalUrl = portalUrlUtils.getStandardPortalUrl(appConfig.portalUrl);
+                var portal = portalUtils.getPortal(portalUrl);
+                return jimuUtils.checkEssentialAppsLicense(this.urlParams.appid, portal, tokenUtils.isInBuilderWindow())
+                .then(lang.hitch(this, function() {
+                  return this._getAppConfigFromTemplateAppId(appConfig.portalUrl,
+                  this.urlParams.appid).then(lang.hitch(this, function(appConfig){
+                    this._tryUpdateAppConfigByLocationUrl(appConfig);
+                    return this._processInPortalAppProtocol(appConfig);
+                  }));
+                }), lang.hitch(this, function(error) {
+                  console.error(error);
+                  throw Error(window.jimuNls.essentialAppsLicenseErrorForApp);
                 }));
               }
             }else{
@@ -174,20 +189,164 @@ function (declare, lang, array, html, dojoConfig, cookie,
           })).then(lang.hitch(this, function(appConfig) {
             return this.loadAndUpgradeAllWidgetsConfig(appConfig);
           })).then(lang.hitch(this, function(appConfig) {
+            if(appConfig._wabAppId){//for AGOL template
+              return this.processResourceInAppConfigForConfigLoader(appConfig, this.urlParams);
+            }else if(appConfig.appItemId && window.JSON.stringify(appConfig).indexOf('${itemId}') > -1){
+              //for app download from portal/agol and deployed standalone
+              return this.updateNecessaryAttrOfResourceUrlInAppConfig(appConfig, appConfig.appItemId);
+            }else{
+              return appConfig;
+            }
+          })).then(lang.hitch(this, function(appConfig) {
+            this.appConfig = appConfig;
             this._configLoaded = true;
             this._setDocumentTitle(appConfig);
+            this._readAndSetSharedTheme(appConfig);
             return this.getAppConfig();
           }));
         }
       }), lang.hitch(this, function(err){
-        this.showError(err);
+        //this.showError(err);
         //we still return a rejected deferred
         var def = new Deferred();
         def.reject(err);
         return def;
       }));
     },
+    processResourceInAppConfigForConfigLoader:function(appConfig, urlParams){
+      var portalUrl = appConfig.portalUrl;
+      //statement:The original app is app1, the template based app is app2
+      var app1Id = appConfig.appItemId;
+      var app2Id = urlParams.appid;
+      var deferred = new Deferred();
+      var cloneAppConfig = lang.clone(appConfig);
+      //1.Traverse appConfig of app1, get all the resources URL, replace its ${itemId} with app2Id
+      this.updateNecessaryAttrOfResourceUrlInAppConfig(cloneAppConfig, app2Id).then(function(){
 
+        //2.if in builder env, continue to handle resource of app1 and app2
+        if(urlParams.mode === 'config'){
+          //3.get all resource url from app1, if app1's resource is not empty, continue
+          var app1Resources = this.getResourceUrlsOfAppConfig(appConfig).result;
+          if(app1Resources.length !== 0){
+            portalUtils.getItemResources(portalUrl, app2Id).then(function(app2Resources){
+              //4.If the app2's resource is empty, this is the first time to open app2,so
+              //copy all app1's resources to the app2
+              if(app2Resources.length === 0){
+                app1Resources = app1Resources.map(function(item){
+                  return {
+                      resUrl:item
+                    };
+                });
+                return appConfigResourceUtils.AddResourcesToItemForAppSave(portalUrl,
+                  app1Resources, app1Id, app2Id).then(function(){
+                  deferred.resolve(cloneAppConfig);
+                },function(error){
+                  console.warn('Add resource to template based app error:' + error.message || error);
+                  deferred.resolve(cloneAppConfig);
+                });
+              }else{
+                deferred.resolve(cloneAppConfig);
+              }
+            },function(error){
+              console.warn('Get resource of template based item error:' + error.message || error);
+              deferred.resolve(cloneAppConfig);
+            });
+          }else{
+            deferred.resolve(cloneAppConfig);
+          }
+        }else{
+          deferred.resolve(cloneAppConfig);
+        }
+      }.bind(this),function(error){
+        console.warn('Insert appId to resource url of appConfig error:' + error.message || error);
+        deferred.resolve(cloneAppConfig);
+      });
+      return deferred;
+    },
+    getResourceUrlsOfAppConfig: function(appConfig) {
+      function isResources(value) {
+        var regExpStr = /^https?:\/\/(.)+\/sharing\/rest\/content\/items\/(.)+\/resources\/inConfig\//;
+        return regExpStr.test(value);
+      }
+
+      function getResourceUrl(pendingObj) {
+        return pendingObj.value;
+      }
+
+      var cb = {
+        test: isResources,
+        func: lang.hitch(this, getResourceUrl)
+      };
+
+      return jimuUtils.processItemResourceOfAppConfig(appConfig, cb);
+    },
+    updateNecessaryAttrOfResourceUrlInAppConfig: function(appConfig, appId) {
+      //Traverse appConfig, get all the resources URL, replace its ${itemId} and token and protocol
+      //For protocol, if portal's protocal is https, forces the protocol of all resources to https
+      var portalUrl = appConfig.portalUrl;
+      var self = this;
+
+      function _updateAppConfigWithNewValue(updatingObj, newValue){
+        var obj = updatingObj.obj;
+        var key = updatingObj.key;
+        if(typeof updatingObj.i === 'number'){
+          obj[key][updatingObj.i] = newValue;
+        } else {
+          obj[key] = newValue;
+        }
+      }
+      //callback:test, is a resource url or not
+      function isResources(value) {
+        var regExpStr = /^https?:\/\/(.)+\/sharing\/rest\/content\/items\/(.)+\/resources\/inConfig\//;
+        return regExpStr.test(value);
+      }
+      //callback:func, process the resource
+      function updateItemIdAndTokenOfResources(args, pendingObj) {
+        var retUrl = self.processItemIDAndTokenOfResources(pendingObj.value, args);
+        retUrl = self.setResouceProtocolForHttps(retUrl);
+        _updateAppConfigWithNewValue(pendingObj, retUrl);
+        return true;
+      }
+      return portalUtils.getPortal(portalUrl).getItemById(appId).then(lang.hitch(this, function(appItemInfo) {
+        var appInfo = {
+          appId: appId,
+          isPublic: appItemInfo.access === 'public',
+          portalUrl: portalUrl
+        };
+        var cb = {
+          test:isResources,
+          func: lang.hitch(this, updateItemIdAndTokenOfResources, appInfo)
+        };
+        var result = jimuUtils.processItemResourceOfAppConfig(appConfig, cb);
+        return result.appConfig;
+      }));
+    },
+
+    setResouceProtocolForHttps:function(retUrl){
+      var url = retUrl;
+      var protocol = window.location.protocol;
+      if(protocol === 'https:'){
+        url = retUrl.replace(/^http(s?):\/\//i, 'https://');
+      }
+      return url;
+    },
+
+    processItemIDAndTokenOfResources:function(resUrl, appInfo){
+      //replace resUrl's ${itemId} and token
+      if (resUrl.indexOf('${itemId}') > 0) {
+        resUrl = resUrl.replace('${itemId}', appInfo.appId);
+      }
+      if (/(\?|\&)token=.+/.test(resUrl)) {
+        resUrl = resUrl.replace(/(\?|\&)token=.+/, '');
+      }
+      if (!appInfo.isPublic) {
+        var credential = tokenUtils.getPortalCredential(appInfo.portalUrl);
+        if (credential) {
+          resUrl += '?token=' + credential.token;
+        }
+      }
+      return resUrl;
+    },
     _setDocumentTitle: function(appConfig) {
       if(!window.isBuilder) {
         //launch
@@ -228,12 +387,8 @@ function (declare, lang, array, html, dojoConfig, cookie,
       }
     },
 
-    checkConfig: function(config){
-      var repeatedId = this._getRepeatedId(config);
-      if(repeatedId){
-        return 'repeated id:' + repeatedId;
-      }
-      return null;
+    checkConfig: function(){
+      return false;
     },
 
     processProxy: function(appConfig){
@@ -254,15 +409,21 @@ function (declare, lang, array, html, dojoConfig, cookie,
 
     addNeedValues: function(appConfig){
       this._processNoUriWidgets(appConfig);
+      this._processEmptyGroups(appConfig);
       this._addElementId(appConfig);
+
+      //do't know why repreated id is generated sometimes, so fix here.
+      this._fixRepeatedId(appConfig);
     },
 
     showError: function(err){
       if(err && err.message){
         html.create('div', {
           'class': 'app-error',
-          innerHTML: err.message
+          innerHTML: jimuUtils.sanitizeHTML(err.message)
         }, document.body);
+        /*globals jimuConfig*/
+        html.setStyle(jimuConfig.loadingId, 'display', 'none');
       }
     },
 
@@ -325,8 +486,16 @@ function (declare, lang, array, html, dojoConfig, cookie,
               //integrated in portal, open as a WAB app
               this._getAppConfigFromAppId(portalUrl, this.urlParams.id)
               .then(lang.hitch(this, function(appConfig){
-                this._tryUpdateAppConfigByLocationUrl(appConfig);
-                return this._processInPortalAppProtocol(appConfig);
+
+                // checkEssentialAppsLicense
+                return jimuUtils.checkEssentialAppsLicense(this.urlParams.id, portal, tokenUtils.isInBuilderWindow())
+                .then(lang.hitch(this, function() {
+                  this._tryUpdateAppConfigByLocationUrl(appConfig);
+                  return this._processInPortalAppProtocol(appConfig);
+                }), lang.hitch(this, function(error) {
+                  console.error(error);
+                  throw Error(window.jimuNls.essentialAppsLicenseErrorForApp);
+                }));
               })).then(function(appConfig){
                 def.resolve(appConfig);
               }, function(err){
@@ -360,6 +529,9 @@ function (declare, lang, array, html, dojoConfig, cookie,
       var appVersion = window.wabVersion;
       var configVersion = appConfig.wabVersion;
       var newConfig;
+
+      //save wabVersion in app config json here
+      appConfig.configWabVersion = appConfig.wabVersion;
 
       if(appVersion === configVersion){
         return appConfig;
@@ -403,6 +575,52 @@ function (declare, lang, array, html, dojoConfig, cookie,
 
       IdentityManager.tokenValidity = 60 * 24 * 7;//token is valid in 7 days
       return appConfig;
+    },
+
+    _readAndSetSharedTheme: function(appConfig){
+      if(!appConfig.theme.sharedTheme){
+        appConfig.theme.sharedTheme = {
+          useHeader: false,
+          useLogo: false
+        };
+        if(this.portalSelf.portalProperties && this.portalSelf.portalProperties.sharedTheme){
+          appConfig.theme.sharedTheme.isPortalSupport = true;
+        }else{
+          appConfig.theme.sharedTheme.isPortalSupport = false;
+        }
+      } else {
+        if(!this.portalSelf.portalProperties || !this.portalSelf.portalProperties.sharedTheme){
+          appConfig.theme.sharedTheme.isPortalSupport = false;
+        }
+      }
+
+      if(appConfig.theme.sharedTheme.useHeader){
+        if(appConfig.theme.sharedTheme.isPortalSupport && this.portalSelf.portalProperties){
+          appConfig.theme.customStyles = {
+            mainBackgroundColor: this.portalSelf.portalProperties.sharedTheme.header.background
+          };
+          appConfig.titleColor = this.portalSelf.portalProperties.sharedTheme.header.text;
+        }else{
+          console.error('Portal does not support sharedTheme.');
+        }
+      }
+
+      if(appConfig.theme.sharedTheme.useLogo){
+        if(appConfig.theme.sharedTheme.isPortalSupport && this.portalSelf.portalProperties){
+          if(this.portalSelf.portalProperties.sharedTheme.logo.small){
+            appConfig.logo = this.portalSelf.portalProperties.sharedTheme.logo.small;
+          }else{
+            appConfig.logo = 'images/app-logo.png';
+          }
+
+          if(!appConfig.logoLink && this.portalSelf.portalProperties.sharedTheme.logo.link){
+            appConfig.logoLink = this.portalSelf.portalProperties.sharedTheme.logo.link;
+          }
+        }else{
+          console.error('Portal does not support sharedTheme, use default logo.');
+          appConfig.logo = 'images/app-logo.png';
+        }
+      }
     },
 
     _tryUpdateAppConfigByLocationUrl: function(appConfig){
@@ -455,6 +673,19 @@ function (declare, lang, array, html, dojoConfig, cookie,
       });
     },
 
+    _processEmptyGroups: function(appConfig){
+      var i = 0;
+      if(!appConfig.widgetOnScreen.groups){
+        return;
+      }
+      array.forEach(appConfig.widgetOnScreen.groups, function(g){
+        if(!g.widgets || g.widgets && g.widgets.length === 0){
+          i ++;
+          g.placeholderIndex = i;
+        }
+      });
+    },
+
     _addElementId: function (appConfig){
       var maxId = 0, i;
 
@@ -475,7 +706,13 @@ function (declare, lang, array, html, dojoConfig, cookie,
       sharedUtils.visitElement(appConfig, function(e){
         if(!e.id){
           maxId ++;
-          e.id = e.uri? (e.uri.replace(/\//g, '_') + '_' + maxId): (''  + '_' + maxId);
+          if(e.itemId){
+            e.id = e.itemId + '_' + maxId;
+          }else if(e.uri){
+            e.id = e.uri.replace(/\//g, '_') + '_' + maxId;
+          }else{
+            e.id = ''  + '_' + maxId;
+          }
         }
       });
     },
@@ -556,6 +793,7 @@ function (declare, lang, array, html, dojoConfig, cookie,
 
       //we have called checkSignInStatus in _processSignIn before come here
       portal.loadSelfInfo().then(lang.hitch(this, function(portalSelf){
+        this.portalSelf = portalSelf;
         //we need to check anonymous property for orgnization first,
         if(portalSelf.access === 'private'){
           //we do not force user to sign in,
@@ -578,6 +816,7 @@ function (declare, lang, array, html, dojoConfig, cookie,
       if(appConfig.portalUrl){
         var portal = portalUtils.getPortal(appConfig.portalUrl);
         portal.loadSelfInfo().then(lang.hitch(this, function(portalSelf){
+          this.portalSelf = portalSelf;
           var isBrowserHttps = window.location.protocol === 'https:';
           var allSSL = !!portalSelf.allSSL;
           if(allSSL || isBrowserHttps){
@@ -667,11 +906,55 @@ function (declare, lang, array, html, dojoConfig, cookie,
       var portal = portalUtils.getPortal(portalUrl);
       var sharingUrl = portalUrlUtils.getSharingUrl(portalUrl);
       var defSignIn;
+      var tokenUrl = portalUrl + "/sharing/generateToken?f=json";
+      var httpsTokenUrl = portalUrlUtils.setHttpsProtocol(tokenUrl);
 
       if(window.appInfo.isRunInPortal){
+        // if(window !== window.top){
+        //   var isInBuilder;
+        //   try{
+        //     if(window.top.isBuilder){
+        //       isInBuilder = true;
+        //     }else{
+        //       isInBuilder = false;
+        //     }
+        //   }catch(e){
+        //     //cross domain, means not in builder
+        //     isInBuilder = false;
+        //   }
+
+        //   if(!isInBuilder){
+        //     IdentityManager.useSignInPage = false;
+        //     tokenUtils.registerOAuthInfo(portalUrl, "arcgisWebApps");
+        //   }
+        // }
+
         //we don't register oauth info for app run in portal.
         defSignIn = IdentityManager.checkSignInStatus(sharingUrl);
-        defSignIn.promise.always(lang.hitch(this, function(){
+        defSignIn.promise.then(lang.hitch(this, function(credential){
+          if(!credential.token){
+            dojoScript.get(httpsTokenUrl, {
+              jsonp: 'callback'
+            }).then(lang.hitch(this, function(response){
+              if(response && response.token){
+                // add token to credential for WebTier Portal
+                credential.token = response.token;
+                if(!credential.expires){
+                  credential.expires = response.expires;
+                }
+                def.resolve();
+              } else {
+                def.resolve();
+              }
+            }), lang.hitch(this, function(err){
+              //network error
+              console.error(err);
+              def.resolve();
+            }));
+          } else {
+            def.resolve();
+          }
+        }), lang.hitch(this, function() {
           def.resolve();
         }));
       }else{
@@ -704,7 +987,7 @@ function (declare, lang, array, html, dojoConfig, cookie,
       var appLocale = this.portalSelf.user && this.portalSelf.user.culture ||
           dojoConfig.locale;
 
-      appLocale = appLocale.toLowerCase();
+      appLocale = appLocale === 'hi' ? 'en' : appLocale.toLowerCase();
 
       if(!this.urlParams.locale && jimuUtils.isLocaleChanged(dojoConfig.locale, appLocale)){
         cookie('wab_app_locale', appLocale);
@@ -735,6 +1018,7 @@ function (declare, lang, array, html, dojoConfig, cookie,
           var templateConfig = results[1];
 
           appConfig._appData = appData;
+          appConfig._wabAppId = wabAppId;
           appConfig.templateConfig = templateConfig;
           appConfig.isTemplateApp = true;
           return appConfig;
@@ -790,15 +1074,18 @@ function (declare, lang, array, html, dojoConfig, cookie,
 
     loadWidgetsManifest: function(config){
       var defs = [], def = new Deferred();
+      if(this.urlParams.manifest && config._buildInfo && config._buildInfo.widgetManifestsMerged){
+        delete config._buildInfo.widgetManifestsMerged;
+      }
       if(config._buildInfo && config._buildInfo.widgetManifestsMerged){
         this._loadMergedWidgetManifests().then(lang.hitch(this, function(manifests){
           sharedUtils.visitElement(config, lang.hitch(this, function(e){
-            if(!e.widgets && e.uri){
-              if(manifests[e.uri]){
+            if(!e.widgets && (e.uri || e.itemId)){
+              if(e.uri && manifests[e.uri]){
                 this._addNeedValuesForManifest(manifests[e.uri], e.uri);
                 jimuUtils.widgetJson.addManifest2WidgetJson(e, manifests[e.uri]);
               }else{
-                defs.push(this.widgetManager.loadWidgetManifest(e));
+                defs.push(loadWidgetManifest(this.widgetManager, e, config.portalUrl));
               }
             }
           }));
@@ -808,8 +1095,8 @@ function (declare, lang, array, html, dojoConfig, cookie,
         }));
       }else{
         sharedUtils.visitElement(config, lang.hitch(this, function(e){
-          if(!e.widgets && e.uri){
-            defs.push(this.widgetManager.loadWidgetManifest(e));
+          if(!e.widgets && (e.uri || e.itemId)){
+            defs.push(loadWidgetManifest(this.widgetManager, e, config.portalUrl));
           }
         }));
         all(defs).then(function(){
@@ -817,37 +1104,103 @@ function (declare, lang, array, html, dojoConfig, cookie,
         });
       }
 
-      setTimeout(function(){
-        if(!def.isResolved()){
-          deleteUnloadedWidgets(config);
-          def.resolve(config);
+      function loadWidgetManifest(widgetManager, e, portalUrl){
+        function _doLoadWidgetManifest(e){
+          return widgetManager.loadWidgetManifest(e).then(function(manifest){
+            return manifest;
+          }, function(err){
+            console.log('Widget failed to load, it is removed.', e.name);
+
+            if(err.stack){
+              console.error(err.stack);
+            }else{
+              //TODO err.code === 400, err.code === 403
+              console.log(err);
+            }
+            deleteUnloadedWidgets(config, e);
+          });
         }
 
-        function deleteUnloadedWidgets(config){
-          deleteInSection('widgetOnScreen');
-          deleteInSection('widgetPool');
-          function deleteInSection(section){
-            if(config[section] && config[section].widgets){
-              config[section].widgets = config[section].widgets.filter(function(w){
+        if(e.itemId){
+          return portalUtils.getPortal(portalUrl).getItemById(e.itemId).then(function(item){
+            if(isWidgetUsable(item.url)){
+              e.uri = jimuUtils.widgetJson.getUriFromItem(item);
+              return _doLoadWidgetManifest(e);
+            }else{
+              console.log('Widget is not useable, it is removed.', e.name);
+              deleteUnloadedWidgets(config, e);
+            }
+          }, function(err){
+            console.log('Widget is not loaded, it is removed.', e.name, err);
+            deleteUnloadedWidgets(config, e);
+          });
+        }else{
+          return _doLoadWidgetManifest(e);
+        }
+      }
+
+      function isWidgetUsable(/*widgetUrl*/){
+        // if(jimuUtils.isEsriDomain(widgetUrl)){
+        //   return true;
+        // }
+
+        // var credential = tokenUtils.getPortalCredential(config.portalUrl);
+        // if(!credential){
+        //   return false;
+        // }
+
+        // //if user has signed in, because we use the config.portalUrl to get credential, so the user MUST be in this org.
+        // return true;
+
+        //this is for portal only. in portal, as long as user can access the item, use can use the widget.
+        //so return true here.
+        //When online support custom widget, we'll review this code. 20170907
+        return true;
+      }
+
+      function deleteUnloadedWidgets(config, e){
+        //if has e, delete a specific widget
+        //if has no e, delete all unloaded widget
+        deleteInSection('widgetOnScreen');
+        deleteInSection('widgetPool');
+
+        function deleteInSection(section){
+          if(config[section] && config[section].widgets){
+            config[section].widgets = config[section].widgets.filter(function(w){
+              if(e){
+                return w.id !== e.id;
+              }else{
                 if(w.uri && !w.manifest){
                   console.error('Widget is removed because it is not loaded successfully.', w.uri);
                 }
                 return w.manifest;
-              });
-            }
-            if(config[section] && config[section].groups){
-              config[section].groups.forEach(function(g){
-                if(g.widgets){
-                  g.widgets = g.widgets.filter(function(w){
+              }
+            });
+          }
+          if(config[section] && config[section].groups){
+            config[section].groups.forEach(function(g){
+              if(g.widgets){
+                g.widgets = g.widgets.filter(function(w){
+                  if(e){
+                    return w.id !== e.id;
+                  }else{
                     if(w.uri && !w.manifest){
                       console.error('Widget is removed because it is not loaded successfully.', w.uri);
                     }
                     return w.manifest;
-                  });
-                }
-              });
-            }
+                  }
+                });
+              }
+            });
           }
+        }
+      }
+
+      setTimeout(function(){
+        //delete problem widgets to avoid one widget crash app
+        if(!def.isResolved()){
+          deleteUnloadedWidgets(config);
+          def.resolve(config);
         }
       }, 60 * 1000);
       return def;
@@ -867,16 +1220,14 @@ function (declare, lang, array, html, dojoConfig, cookie,
       });
     },
 
-    _getRepeatedId: function(appConfig){
-      var id = [], ret;
+    _fixRepeatedId: function(appConfig){
+      var id = [];
       sharedUtils.visitElement(appConfig, function(e){
         if(id.indexOf(e.id) >= 0){
-          ret = e.id;
-          return true;
+          e.id += '_';
         }
         id.push(e.id);
       });
-      return ret;
     },
 
     //we use URL parameters for the first loading.
@@ -910,7 +1261,7 @@ function (declare, lang, array, html, dojoConfig, cookie,
     if(instance === null) {
       instance = new clazz(urlParams, options);
     }else{
-      instance.urlParams = urlParams;
+      instance.urlParams = urlParams || {};
       instance.options = options;
     }
     return instance;

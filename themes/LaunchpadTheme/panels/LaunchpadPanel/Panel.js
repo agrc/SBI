@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
 
 define(['dojo/_base/declare',
   'dojo/_base/lang',
+  'dojo/_base/html',
   'dojo/on',
+  'dojo/keys',
   'dojo/dom-style',
   'dojo/dom-class',
   'dojo/dom-construct',
@@ -32,10 +34,10 @@ define(['dojo/_base/declare',
   'dijit/_TemplatedMixin',
   'dojo/text!./Panel.html'
 ],
-function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse,
+function(declare, lang, html, on, keys, domStyle, domClass, domConstruct, domGeometry, mouse,
   baseFx, coreFx, Move, Deferred, ResizeHandle, utils, BaseWidgetPanel, _TemplatedMixin, template) {
   /* global jimuConfig*/
-  var DEFAULT_WIDTH = 350, DEFAULT_HEIGHT = 480;
+  var DEFAULT_WIDTH = 350, DEFAULT_HEIGHT = 480, MARGIN_LEFT = 50;
 
   return declare([BaseWidgetPanel, _TemplatedMixin], {
     baseClass: 'jimu-panel jimu-launchpad-panel',
@@ -47,6 +49,10 @@ function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse
     closeAnimation: 'fadeOut',
     animationDuration: 400,
     _device: 'desktop', // 'desktop' or 'mobile'
+
+    postMixInProperties:function(){
+      this.headerNls = window.jimuNls.panelHeader;
+    },
 
     postCreate: function(){
       this.inherited(arguments);
@@ -77,6 +83,14 @@ function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse
       this.inherited(arguments);
 
       this.panelManager.normalizePanel(this);
+
+      html.setAttr(this.maxNode, 'aria-label', this.headerNls.maxWindow);
+      html.setAttr(this.closeNode, 'aria-label', this.headerNls.closeWindow);
+      this.own(on(this.domNode, 'keydown', lang.hitch(this, function(evt){
+        if(!html.hasClass(evt.target, 'close-btn') && evt.keyCode === keys.ESCAPE){
+          this.closeNode.focus();
+        }
+      })));
     },
 
     _makeOriginalBox: function() {
@@ -158,6 +172,12 @@ function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse
       return domGeometry.getMarginBox(jimuConfig.mapId);
     },
 
+    _onTitleLabelKeyDown: function (evt) {
+      if (evt.shiftKey && evt.keyCode === keys.TAB) {
+        evt.preventDefault();
+      }
+    },
+
     _onMinNodeClick: function(){
       this.panelManager.minimizePanel(this);
       domStyle.set(this.domNode, 'overflow', 'hidden');
@@ -167,15 +187,34 @@ function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse
       if(this.windowState === 'normal') {
         this.panelManager.maximizePanel(this);
         domClass.add(this.maxNode, 'maximized');
+        html.setAttr(this.maxNode, 'aria-label', this.headerNls.restoreWindow);
       } else if(this.windowState === 'maximized'){
         this.panelManager.normalizePanel(this);
         domClass.remove(this.maxNode, 'maximized');
+        html.setAttr(this.maxNode, 'aria-label', this.headerNls.maxWindow);
+      }
+    },
+
+    _onMaxNodeKeydown: function(evt){
+      if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+        this._onMaxNodeClick();
+      }else if(evt.keyCode === keys.TAB && evt.shiftKey){ //not trigger min node.
+        evt.preventDefault();
       }
     },
 
     _onCloseBtnClicked: function(evt) {
       evt.stopPropagation();
       this.panelManager.closePanel(this, 'wipe');
+    },
+
+    _onCloseBtnKeydown: function(evt){
+      if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE){
+        this._onCloseBtnClicked(evt);
+      }else if(evt.keyCode === keys.TAB && evt.shiftKey &&
+        html.getStyle(this.maxNode, 'display') === 'none'){ //not trigger min node.
+        evt.preventDefault();
+      }
     },
 
     _minimize: function(){
@@ -383,7 +422,7 @@ function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse
 
       row = Math.floor(position.index / size);
       col = position.index % size;
-      position.left = (row + 1) * position.margin + col * (position.width + position.margin);
+      position.left = (row + 1) * position.margin + col * (position.width + position.margin) + MARGIN_LEFT;
       position.top -= position.margin * row;
 
       this.position = lang.clone(position);
@@ -409,14 +448,16 @@ function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse
      * @return {[type]} [description]
      */
     onNormalize: function(){
-      this._normalize().then(lang.hitch(this, function(){
-        domStyle.set(this.iconNode, 'cursor', 'default');
-        domClass.remove(this.domNode, 'minimized');
-        domClass.remove(this.domNode, 'maximized');
+      if (this.domNode && this.containerNode) {
+        this._normalize().then(lang.hitch(this, function(){
+          domStyle.set(this.iconNode, 'cursor', 'default');
+          domClass.remove(this.domNode, 'minimized');
+          domClass.remove(this.domNode, 'maximized');
 
-        this.resize();
-        this._onResponsible();
-      }));
+          this.resize();
+          this._onResponsible();
+        }));
+      }
     },
 
     /**
@@ -490,10 +531,8 @@ function(declare, lang, on, domStyle, domClass, domConstruct, domGeometry, mouse
         }
         this.disableResizable();
         domStyle.set(this.maxNode, 'display', '');
-        domStyle.set(this.minNode, 'margin', '0 10px');
       } else {
         domStyle.set(this.maxNode, 'display', 'none');
-        domStyle.set(this.minNode, 'margin', '');
         this.makeResizable();
         this.makeMoveable(this.titleLabelNode, this.position.width, this.position.width * 0.25);
       }

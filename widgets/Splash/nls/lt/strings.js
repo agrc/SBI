@@ -1,5 +1,5 @@
 define({
-  "_widgetLabel": "Pradžia",
+  "_widgetLabel": "Pristatymo langas",
   "welcomeMessage": "Sveiki, čia ArcGIS internetinė aplikacija!",
   "licenceAgree": "Sutinku su",
   "licenceTerm": "ArcGIS internetinės aplikacijos sąlygos",

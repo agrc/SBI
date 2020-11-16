@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,12 +21,13 @@ define([
   'dojo/_base/html',
   'dojo/topic',
   'dijit/_WidgetBase',
+  'jimu/dijit/BindLabelPropsMixin',
   'dijit/_TemplatedMixin',
   'jimu/utils',
   './PanelManager'
-], function(declare, lang, array, html, topic, _WidgetBase, _TemplatedMixin,
+], function(declare, lang, array, html, topic, _WidgetBase, BindLabelPropsMixin, _TemplatedMixin,
   utils, PanelManager){
-  var clazz = declare([_WidgetBase, _TemplatedMixin], {
+  var clazz = declare([_WidgetBase, BindLabelPropsMixin, _TemplatedMixin], {
     //type: String
     //    the value shoulb be widget
     type: 'widget',
@@ -139,6 +140,8 @@ define([
       this.own(topic.subscribe('publishData', lang.hitch(this, this._onReceiveData)));
       this.own(topic.subscribe('dataFetched', lang.hitch(this, this._onReceiveData)));
       this.own(topic.subscribe('noData', lang.hitch(this, this._onNoData)));
+
+      this.own(topic.subscribe('dataSourceDataUpdated', lang.hitch(this, this.onDataSourceDataUpdate)));
     },
 
     startup: function(){
@@ -355,6 +358,14 @@ define([
             Please call fetch data.
         object: the history data.
       *********************************/
+    },
+
+    updateDataSourceData: function(dsId, data){
+      topic.publish('updateDataSourceData', 'widget~' + this.id + '~' + dsId, data);
+    },
+
+    onDataSourceDataUpdate: function(dsId, data){
+      /* jshint unused: false */
     },
 
     _onNoData: function(name, widgetId){

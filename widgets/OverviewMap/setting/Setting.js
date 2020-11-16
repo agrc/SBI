@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,61 +15,66 @@
 ///////////////////////////////////////////////////////////////////////////
 
 define([
-    'dojo/_base/declare',
-    'jimu/BaseWidgetSetting',
-    'dijit/_WidgetsInTemplateMixin',
-    'dijit/registry',
-    'dojo/_base/lang',
-    'dojo/on',
-    'dojo/query',
-    'jimu/dijit/CheckBox',
-    'jimu/dijit/RadioBtn'
-  ],
-  function(
-    declare,
-    BaseWidgetSetting,
-    _WidgetsInTemplateMixin,
-    registry,
-    lang,
-    on,
-    query,
+  'dojo/_base/declare',
+  'jimu/BaseWidgetSetting',
+  'dijit/_WidgetsInTemplateMixin',
+  'dojo/Deferred',
+  //'jimu/dijit/ColorTransparencyPicker',
+  'dojo/_base/lang',
+  'dojo/on',
+  //'dojo/_base/html',
+  //"../utils",
+  //'jimu/utils',
+  './BaseLayerConfig',
+  'jimu/dijit/CheckBox',
+  'jimu/dijit/RadioBtn'
+],
+  function (
+    declare, BaseWidgetSetting, _WidgetsInTemplateMixin, Deferred,//ColorTransparencyPicker,
+    lang, on,/* html, utils, jimuUtils,*/ BaseLayerConfig,
     CheckBox) {
     return declare([BaseWidgetSetting, _WidgetsInTemplateMixin], {
-
       baseClass: 'jimu-widget-overviewmap-setting',
-
+      //_defaultColor: "#000",
+      //_defaultTransparency: 0.5,
       _selectedAttachTo: "",
 
-      postCreate: function() {
+      postCreate: function () {
         this.expandBox = new CheckBox({
           label: this.nls.expandText,
           checked: false
         }, this.expandBox);
         this.expandBox.startup();
 
-        this.own(on(this.topLeftNode, 'click', lang.hitch(this, function() {
+        this.own(on(this.topLeftNode, 'click', lang.hitch(this, function () {
           this._selectItem('top-left');
         })));
-        this.own(on(this.topRightNode, 'click', lang.hitch(this, function() {
+        this.own(on(this.topRightNode, 'click', lang.hitch(this, function () {
           this._selectItem('top-right');
         })));
-        this.own(on(this.bottomLeftNode, 'click', lang.hitch(this, function() {
+        this.own(on(this.bottomLeftNode, 'click', lang.hitch(this, function () {
           this._selectItem('bottom-left');
         })));
-        this.own(on(this.bottomRightNode, 'click', lang.hitch(this, function() {
+        this.own(on(this.bottomRightNode, 'click', lang.hitch(this, function () {
           this._selectItem('bottom-right');
         })));
+
+        this.baseLayerConfig = new BaseLayerConfig({
+          nls: this.nls, config: this.config, map: this.map
+        }, this.baseLayerConfigContainer);
+        this.baseLayerConfig.startup();
       },
 
-      startup: function() {
+      startup: function () {
         this.inherited(arguments);
         if (!this.config.overviewMap) {
           this.config.overviewMap = {};
         }
+
         this.setConfig(this.config);
       },
 
-      setConfig: function(config) {
+      setConfig: function (config) {
         this.config = config;
         this.expandBox.setValue(config.overviewMap.visible);
         if (this.config.overviewMap.attachTo) {
@@ -91,36 +96,52 @@ define([
           }
           this._selectItem(_attachTo);
         }
-      },
 
-      _selectItem: function(attachTo) {
-        var _selectedNode = null;
-        if (attachTo === 'top-left') {
-          _selectedNode = this.topLeftNode;
-        } else if (attachTo === 'top-right') {
-          _selectedNode = this.topRightNode;
-        } else if (attachTo === 'bottom-left') {
-          _selectedNode = this.bottomLeftNode;
-        } else if (attachTo === 'bottom-right') {
-          _selectedNode = this.bottomRightNode;
+        this.baseLayerConfig.setValues(this.config);
+      },
+      // _setColor: function(){
+      //   var color = this._defaultColor;
+      //   var transparency = this._defaultTransparency;
+      //   if (bg) {
+      //     color = bg.color;
+      //     transparency = bg.transparency;
+      //   }
+      //   this.backgroundColorPicker.setValues({
+      //     "color": color,
+      //     "transparency": transparency
+      //   });
+      // },
+      _selectItem: function (attachTo) {
+        if (this[attachTo] && this[attachTo].setChecked) {
+          this[attachTo].setChecked(true);
         }
-        var _radio = registry.byNode(query('.jimu-radio', _selectedNode)[0]);
-        _radio.check(true);
 
         this._selectedAttachTo = attachTo;
       },
 
-      _getSelectedAttachTo: function() {
+      _getSelectedAttachTo: function () {
         return this._selectedAttachTo;
       },
 
-      getConfig: function() {
-        this.config.overviewMap.visible = this.expandBox.checked;
-        this.config.overviewMap.attachTo = this._getSelectedAttachTo();
-        var _hasMaximizeButton = 'maximizeButton' in this.config.overviewMap;
-        this.config.overviewMap.maximizeButton = _hasMaximizeButton ?
-          this.config.overviewMap.maximizeButton : true;
-        return this.config;
+      getConfig: function () {
+        var def = new Deferred();
+        this.baseLayerConfig.isValid().then(lang.hitch(this, function (res) {
+          if (false === res) {
+            def.resolve(false);//inValid
+          } else {
+            this.config.overviewMap.visible = this.expandBox.checked;
+            this.config.overviewMap.attachTo = this._getSelectedAttachTo();
+
+            var _hasMaximizeButton = 'maximizeButton' in this.config.overviewMap;
+            this.config.overviewMap.maximizeButton = _hasMaximizeButton ? this.config.overviewMap.maximizeButton : true;
+
+            this.config.overviewMap.baseLayer = this.baseLayerConfig.getValues(this.config);
+
+            def.resolve(this.config);
+          }
+        }));
+
+        return def;
       }
     });
   });

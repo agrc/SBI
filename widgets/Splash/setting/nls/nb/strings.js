@@ -10,9 +10,9 @@ define({
   "confirmOption": "Vis alltid dette velkomstbildet hver gang appen startes",
   "backgroundColor": "Bakgrunnsfarge",
   "content": "Innhold",
-  "contentDescription": "Definer innholdet som skal vises i velkomstbildet",
+  "contentDescription": "Definer innholdet som skal vises i velkomstbildet.",
   "appearance": "Utseende",
-  "appearanceDescription": "Angi utseende for velkomstbildet",
+  "appearanceDescription": "Angi utseende for velkomstbildet.",
   "size": "Størrelse",
   "width": "Bredde",
   "height": "Høyde",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Bildefyll",
   "chooseFile": "Velg fil",
   "noFileChosen": "Ingen fil er valgt",
-  "transparency": "Gjennomsiktighet",
   "sizeFill": "Fyll",
   "sizeFit": "Tilpass",
   "sizeStretch": "Strekk for å fylle",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Farge for knapp",
   "buttonText": "Knappetekst",
   "buttonTextColor": "Tekstfarge for knapp",
+  "contentAlign": "Innholdsjustering",
+  "alignTop": "Topp",
+  "alignMiddle": "Midten",
   "maskColor": "Maskefarge",
   "options": "Alternativer",
-  "optionsDescription": "Angi virkemåte for velkomstbildet"
+  "optionsDescription": "Angi virkemåte for velkomstbildet."
 });

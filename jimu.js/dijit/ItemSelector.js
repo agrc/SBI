@@ -1,20 +1,18 @@
-/*
-Copyright ©2014 Esri. All rights reserved.
-
-TRADE SECRETS: ESRI PROPRIETARY AND CONFIDENTIAL
-Unpublished material - all rights reserved under the
-Copyright Laws of the United States and applicable international
-laws, treaties, and conventions.
-
-For additional information, contact:
-Attn: Contracts and Legal Department
-Environmental Systems Research Institute, Inc.
-380 New York Street
-Redlands, California, 92373
-USA
-
-email: contracts@esri.com
-*/
+///////////////////////////////////////////////////////////////////////////
+// Copyright © Esri. All Rights Reserved.
+//
+// Licensed under the Apache License Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+///////////////////////////////////////////////////////////////////////////
 
 define([
   'dojo/_base/declare',
@@ -32,6 +30,7 @@ define([
   'dojo/promise/all',
   'dojo/query',
   'dojo/on',
+  'dojo/dom-style',
   'jimu/utils',
   'jimu/portalUtils',
   'jimu/tokenUtils',
@@ -39,13 +38,15 @@ define([
   'jimu/dijit/ViewStack',
   'jimu/dijit/Search',
   'jimu/dijit/TabContainer3',
-  'jimu/dijit/_ItemTable'
+  'jimu/dijit/_ItemTable',
+  'jimu/dijit/BindLabelPropsMixin',
+  'dijit/form/RadioButton'
 ], function(declare, topic, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, template,
-  Evented, lang, dojoConfig, array, html, Deferred, all, query, on, jimuUtils, portalUtils,
-  tokenUtils, portalUrlUtils, ViewStack, Search, TabContainer3,  _ItemTable) {
+  Evented, lang, dojoConfig, array, html, Deferred, all, query, on, domStyle, jimuUtils, portalUtils,
+  tokenUtils, portalUrlUtils, ViewStack, Search, TabContainer3,  _ItemTable, BindLabelPropsMixin) {
   /*jshint unused: false*/
   /* jshint maxlen: 200 */
-  return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, Evented], {
+  return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, BindLabelPropsMixin, Evented], {
     templateString: template,
     declaredClass: 'jimu.dijit.ItemSelector',
     baseClass: "jimu-item-selector",
@@ -80,6 +81,11 @@ define([
     typeKeywords: '',//array, such as ['Web AppBuilder'] or ['Web AppBuilder','Web Map']...
     showOnlineItems: true,
     onlyShowOnlineFeaturedItems: false,
+    showMyContent: true,
+    showMyOrganization: true,
+    showMyGroups: true,
+    showPublic: true,
+    showOnlyEditableGroups: false,
 
     //public methods:
     //getSelectedItem
@@ -167,7 +173,28 @@ define([
         content: this.publicTabNode
       };
 
-      var tabs = [tabMyContent, tabOrganization, tabGroup, tabPublic];
+      domStyle.set(this.mycontentTabNode, "display", "none");
+      domStyle.set(this.organizationTabNode, "display", "none");
+      domStyle.set(this.groupTabNode, "display", "none");
+      domStyle.set(this.publicTabNode, "display", "none");
+
+      var tabs = [];
+      if(this.showMyContent) {
+        tabs.push(tabMyContent);
+        domStyle.set(this.mycontentTabNode, "display", "block");
+      }
+      if(this.showMyOrganization) {
+        tabs.push(tabOrganization);
+        domStyle.set(this.organizationTabNode, "display", "block");
+      }
+      if(this.showMyGroups) {
+        tabs.push(tabGroup);
+        domStyle.set(this.groupTabNode, "display", "block");
+      }
+      if(this.showPublic) {
+        tabs.push(tabPublic);
+        domStyle.set(this.publicTabNode, "display", "block");
+      }
 
       this.tab = new TabContainer3({
         tabs: tabs
@@ -202,14 +229,12 @@ define([
     },
 
     _initPortalRadio: function(){
-      jimuUtils.combineRadioCheckBoxWithLabel(this.portalPublicRaido, this.portalPublicLabel);
-      jimuUtils.combineRadioCheckBoxWithLabel(this.onlinePublicRaido, this.onlinePublicLabel);
       var portalUrl = this._getPortalUrl();
       var portalServer = portalUrlUtils.getServerByUrl(portalUrl);
 
-      this.portalPublicRaido.disabled = false;
-      this.onlinePublicRaido.disabled = false;
-      this.portalPublicRaido.checked = true;
+      this.portalPublicRaido.set("disabled", false);
+      this.onlinePublicRaido.set("disabled", false);
+      this.portalPublicRaido.set("checked", true);
       var shouldHidePublicArcGIScom = false;
       if(portalUrlUtils.isArcGIScom(portalServer)){
         shouldHidePublicArcGIScom = true;
@@ -225,7 +250,7 @@ define([
         }
       }
       if(shouldHidePublicArcGIScom){
-        this.onlinePublicRaido.disabled = true;
+        this.onlinePublicRaido.set("disabled", true);
         html.setStyle(this.onlinePublicRaido, 'display', 'none');
         html.setStyle(this.onlinePublicLabel, 'display', 'none');
       }
@@ -358,14 +383,14 @@ define([
 
       var portalUrl = this._getPortalUrl();
       //portal public
-      if(!this.portalPublicRaido.disabled){
+      if(!this.portalPublicRaido.get("disabled")){
         this.publicPortalItemTable.set('portalUrl', portalUrl);
         this.publicPortalItemTable.searchAllItems(this._allPublicPortalQuery);
         this.publicPortalItemTable.set('filteredQuery', this._filterPublicPortalQuery);
       }
 
       //ArcGIS.com public
-      if(!this.onlinePublicRaido.disabled){
+      if(!this.onlinePublicRaido.get("disabled")){
         this.publicOnlineItemTable.set('portalUrl', window.location.protocol + '//www.arcgis.com');
         this.publicOnlineItemTable.searchAllItems(this._allPublicOnlineQuery);
         this.publicOnlineItemTable.set('filteredQuery', this._filterPublicOnlineQuery);
@@ -379,11 +404,11 @@ define([
     },
 
     _onPublicRaidoClicked: function(){
-      if(this.portalPublicRaido.checked){
+      if(this.portalPublicRaido.get("checked")){
         this.publicPortalItemTable.show();
         this.publicOnlineItemTable.hide();
       }
-      else if(this.onlinePublicRaido.checked){
+      else if(this.onlinePublicRaido.get("checked")){
         this.publicPortalItemTable.hide();
         this.publicOnlineItemTable.show();
       }
@@ -396,12 +421,12 @@ define([
         this.publicPortalItemTable.showFilterItemsSection();
         this.publicOnlineItemTable.showFilterItemsSection();
 
-        if (this.portalPublicRaido.checked) {
+        if (this.portalPublicRaido.get("checked")) {
           //text + this._itemTypeQueryString + ' AND access:public ' + this._typeKeywordQueryString
           this._filterPublicPortalQuery.q = text + ' ' + this._filterPublicPortalQuery.basicQ;
           this._filterPublicPortalQuery.start = 1;
           this.publicPortalItemTable.searchFilteredItems(this._filterPublicPortalQuery);
-        } else if (this.onlinePublicRaido.checked) {
+        } else if (this.onlinePublicRaido.get("checked")) {
           this._filterPublicOnlineQuery.q = text + ' ' + this._itemTypeQueryString +
           ' AND access:public ' + this._typeKeywordQueryString;
           this._filterPublicOnlineQuery.start = 1;
@@ -540,7 +565,7 @@ define([
 
     _searchGroups: function(user){
       this._resetGroupsSection();
-      html.setStyle(this.groupsSection, "display", "block");
+      html.setStyle(this.groupsSection, "display", "flex");
       var groups = user.getGroups();
       if (groups.length > 0) {
         html.setStyle(this.groupSearch.domNode, 'display', 'block');

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,14 @@ define(['dojo/_base/declare',
   'dojo/_base/lang',
   'dojo/_base/array',
   'dojo/_base/html',
+  'dojo/query',
   'dojo/on',
+  'dijit/focus',
+  'dojo/keys',
   'dojo/Evented',
   '../utils'
 ],
-function(declare, _WidgetBase, lang, array, html, on, Evented, utils) {
+function(declare, _WidgetBase, lang, array, html, query, on, focusUtil, keys, Evented, utils) {
   return declare([_WidgetBase, Evented], {
     // summary:
     //    the params format:
@@ -35,6 +38,7 @@ function(declare, _WidgetBase, lang, array, html, on, Evented, utils) {
     //      if not set, use the menu's parent node to calculate the menu's position.
     'baseClass': 'jimu-dropmenu',
     declaredClass: 'jimu.dijit.DropMenu',
+    focusNodeWhenLeave: null,
 
 
     constructor: function(){
@@ -90,15 +94,36 @@ function(declare, _WidgetBase, lang, array, html, on, Evented, utils) {
         }else if(item.key) {
           node = html.create('div', {
             'class': 'menu-item-identification menu-item',
+            'tabindex': '0',
             'itemId': item.key,
-            innerHTML: item.label
+            'role': 'button',
+            innerHTML: utils.sanitizeHTML(item.label)
           }, this.dropMenuNode);
 
           this.own(on(node, 'click', lang.hitch(this, function(evt){
             this.selectItem(item, evt);
           })));
+
+          this.own(on(node, 'keydown', lang.hitch(this, function(evt){
+            if(evt.keyCode === keys.ENTER) {
+              evt.stopPropagation();
+              evt.preventDefault();
+              var aElement = query('a', node)[0];
+              if(aElement) {
+                var event = document.createEvent("MouseEvents");
+                event.initEvent('click', true, true);
+                aElement.dispatchEvent(event);
+              } else {
+                this.selectItem(item, evt);
+              }
+            }
+          })));
         }
       }, this);
+
+      if(!this.focusNodeWhenLeave) {
+        this.focusNodeWhenLeave = this.domNode.parentNode;
+      }
     },
 
     _getDropMenuPosition: function(){
@@ -135,6 +160,21 @@ function(declare, _WidgetBase, lang, array, html, on, Evented, utils) {
       return pos;
     },
 
+    getMenuItemNodeByItemKey: function(itemKey) {
+      var itemNode;
+      var menuItems = query('.menu-item', this.dropMenuNode);
+      menuItems.some(function(menuItem) {
+        var itemId = html.getAttr(menuItem, 'itemId');
+        if(itemId === itemKey) {
+          itemNode = menuItem;
+          return true;
+        } else {
+          return false;
+        }
+      }, this);
+      return itemNode;
+    },
+
     selectItem: function(item){
       this.closeDropMenu();
       this.emit('onMenuClick', item);
@@ -148,10 +188,12 @@ function(declare, _WidgetBase, lang, array, html, on, Evented, utils) {
     },
 
     closeDropMenu: function(){
+      if(this.state === 'opened') {
+        focusUtil.focus(this.focusNodeWhenLeave);
+      }
       this.state = 'closed';
       html.setStyle(this.dropMenuNode, 'display', 'none');
       this.emit('onCloseMenu');
     }
-
   });
 });

@@ -1,3 +1,48 @@
+
+/*index.html/ie-note*/
+#main-loading #ie-note {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+}
+
+#main-loading #ie-note {
+  width: 586px;
+  height: 253px;
+  background: #FFF;
+  padding: 0 30px 40px 30px;
+  font-size: 14px;
+  color: #596679;
+}
+
+#ie-note .hint-title {
+  height: 40px;
+  line-height: 48px;
+  text-align: left;
+  font-weight: bold;
+  border-bottom: 1px solid #EEE;
+}
+
+#ie-note .hint-img {
+  background-image: url('images/hint.png');
+  background-position: left;
+  padding-left: 40px;
+  margin-top: 20px;
+  background-repeat: no-repeat;
+  height: 30px;
+  text-align: left;
+  line-height: 30px;
+  font-weight: bold;
+}
+
+#ie-note span {
+  display: block;
+  line-height: 14px;
+}
+
 .jimu-navbar .jimu-icon-btn:first-child{
   margin-left: 0;
 }

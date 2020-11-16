@@ -10,9 +10,9 @@ define({
   "confirmOption": "Luôn hiển thị màn hình splash này mỗi khi khởi chạy ứng dụng",
   "backgroundColor": "Màu Nền",
   "content": "Nội dung",
-  "contentDescription": "Xác định nội dung hiển thị trên màn hình splash",
+  "contentDescription": "Xác định nội dung hiển thị trên màn hình splash.",
   "appearance": "Giao diện",
-  "appearanceDescription": "Thiết lập giao diện của màn hình splash",
+  "appearanceDescription": "Thiết lập giao diện của màn hình splash.",
   "size": "Kích cỡ",
   "width": "Chiều rộng",
   "height": "Chiều cao",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Đổ hình ảnh",
   "chooseFile": "Chọn tệp",
   "noFileChosen": "Không có tệp được chọn",
-  "transparency": "Độ trong suốt",
   "sizeFill": "Tô",
   "sizeFit": "Đặt vừa",
   "sizeStretch": "Kéo để đổ",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Nút màu",
   "buttonText": "Văn bản của nút",
   "buttonTextColor": "Màu văn bản của nút",
+  "contentAlign": "Căn chỉnh nội dung",
+  "alignTop": "Trên cùng",
+  "alignMiddle": "Giữa",
   "maskColor": "Màu mặt nạ",
   "options": "Tùy chọn",
-  "optionsDescription": "Thiết lập hành vi của màn hình splash"
+  "optionsDescription": "Thiết lập hành vi của màn hình splash."
 });

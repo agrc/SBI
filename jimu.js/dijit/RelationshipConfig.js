@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@ define(['dojo/_base/declare',
   'dojo/text!./templates/RelationshipConfig.html',
   'dojo/dom-construct',
   'dojo/_base/lang',
-  'dojo/_base/array'
+  'dojo/_base/array',
+  '../utils'
 ],
 function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
-  template, domConstruct, lang, array) {
+  template, domConstruct, lang, array, jimuUtils) {
   return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin], {
     _def:null,
     declaredClass: 'jimu.dijit.RelationshipConfig',
@@ -73,7 +74,7 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
       this.title = val;
       domConstruct.empty(this.titleLabel);
       domConstruct.create('div', {
-        innerHTML: val
+        innerHTML: jimuUtils.sanitizeHTML(val)
       }, this.titleLabel);
     },
 

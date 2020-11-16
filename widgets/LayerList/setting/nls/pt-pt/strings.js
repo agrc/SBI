@@ -1,11 +1,17 @@
 define({
   "showLegend": "Mostrar legenda",
-  "controlPopupMenuTitle": "Selecione as ações que serão exibidas no menu de contexto da camada.",
+  "controlPopupMenuTitle": "Selecionar as ações que serão exibidas no menu de contexto da camada",
   "zoomto": "Efectuar zoom para",
   "transparency": "Transparência",
-  "controlPopup": "Activar / Desactivar Pop-up",
+  "setVisibilityRange": "Definir Intervalo de Visibilidade",
+  "controlPopup": "Ativar / Desativar janela pop-up",
   "moveUpAndDown": "Mover para cima / Mover para baixo",
-  "attributeTable": "Abrir tabela de atributos",
-  "url": "Descrição / Mostrar Detalhes de Item / Descarregar",
-  "layerSelectorTitle": "Selecione que camadas serão exibidas na lista."
+  "attributeTable": "Visualizar em Tabela de Atributos",
+  "url": "Descrição / Mostrar detalhes de item / Transferir",
+  "showHideLabels": "Apresentar/ocultar etiquetas",
+  "expandAllLayers": "Expandir todas as camadas",
+  "expandAllLayersByDefault": "Expandir todas as camadas por predefinição",
+  "layerSelectorTitle": "Selecionar as camadas que serão exibidas na lista",
+  "showTitle": "Exibir título",
+  "showBasemap": "Exibir Mapa Base"
 });

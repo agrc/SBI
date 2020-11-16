@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2015 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ define(
     "dojo/text!./LocatorSourceSetting.html",
     "jimu/dijit/CheckBox",
     "dijit/form/ValidationTextBox",
+    "dijit/form/RadioButton",
     "dijit/form/NumberTextBox"
   ],
   function(
@@ -76,9 +77,11 @@ define(
       geocoderPopup: null,
 
       _clickSet: false,
+      _defaultZoomScale: null,
 
       postCreate: function() {
         this.inherited(arguments);
+        this.zoomScale.set('placeHolder', window.jimuNls.common.defaults);
         this.exampleHint = this.nls.locatorExample +
           ": http://&lt;myServerName&gt;/arcgis/rest/services/World/GeocodeServer";
 
@@ -98,6 +101,8 @@ define(
         html.setStyle(this.enableLocalSearch.domNode, 'display', 'none');
 
         this._setMessageNodeContent(this.exampleHint);
+        this.own(on(this.panToRadio, 'click', lang.hitch(this, this._onRadioClicke)));
+        this.own(on(this.zoomToRadio, 'click', lang.hitch(this, this._onRadioClicke)));
 
         this.config = this.config ? this.config : {};
         this.setConfig(this.config);
@@ -126,6 +131,9 @@ define(
 
         var url = config.url;
         if (!url) {
+          // set default zoomToRadio if there is no url.
+          //html.setAttr(this.zoomToRadio, 'checked', '');
+          this.zoomToRadio.set('checked', true);
           return;
         }
         this.config = config;
@@ -177,13 +185,15 @@ define(
           singleLineFieldName: this.singleLineFieldName,
           placeholder: jimuUtils.stripHTML(this.placeholder.get('value')),
           countryCode: jimuUtils.stripHTML(this.countryCode.get('value')),
-          zoomScale: this.zoomScale.get('value') || 50000,
-          maxSuggestions: this.maxSuggestions.get('value') || 6,
+          panToScale: this.panToRadio.get('checked') ? true : false,
+          zoomScale: this.zoomScale.get('value') || this._defaultZoomScale,
+          maxSuggestions: this.maxSuggestions.get('value'),
           maxResults: this.maxResults.get('value') || 6,
           searchInCurrentMapExtent: this.searchInCurrentMapExtent.checked,
           enableLocalSearch: this.enableLocalSearch.getValue(),
           localSearchMinScale: this.localSearchMinScale.get('value'),
           localSearchDistance: this.localSearchDistance.get('value'),
+          radiusUnit: this.radiusUnit.get('value'),
           type: "locator"
         };
         return geocode;
@@ -216,7 +226,7 @@ define(
         this.countryCode.set('disabled', false);
         this.maxSuggestions.set('disabled', false);
         this.maxResults.set('disabled', false);
-        this.zoomScale.set('disabled', false);
+        this._controlZoomScaleTextBox();
       },
 
       _setSourceItems: function() {
@@ -239,6 +249,7 @@ define(
           this.countryCode.set('value', jimuUtils.stripHTML(config.countryCode));
         }
 
+        this._processLocalSearchRadiusUnit();
         if ('capabilities' in this._locatorDefinition) {
           html.setStyle(this.enableLocalSearch.domNode, 'display', '');
           this._processlocalSearchTable(config.enableLocalSearch);
@@ -249,6 +260,7 @@ define(
           if (config.localSearchDistance && config.enableLocalSearch) {
             this.localSearchDistance.set('value', config.localSearchDistance);
           }
+          this.radiusUnit.set('value', config.radiusUnit || 'meter');
         } else {
           this.enableLocalSearch.setValue(false);
           html.setStyle(this.enableLocalSearch.domNode, 'display', 'none');
@@ -264,9 +276,19 @@ define(
 
         this.searchInCurrentMapExtent.setValue(!!config.searchInCurrentMapExtent);
 
-        this.zoomScale.set('value', config.zoomScale || 50000);
+        //html.removeAttr(this.zoomToRadio, 'checked');
+        this.zoomToRadio.set('checked', false);
+        if(this.config.panToScale) {
+          //html.setAttr(this.panToRadio, 'checked', '');
+          this.panToRadio.set('checked', true);
+        } else {
+          //html.setAttr(this.zoomToRadio, 'checked', '');
+          this.zoomToRadio.set('checked', true);
+        }
 
-        this.maxSuggestions.set('value', config.maxSuggestions || 6);
+        this.zoomScale.set('value', config.zoomScale || this._defaultZoomScale);
+
+        this.maxSuggestions.set('value', config.maxSuggestions);
 
         this.maxResults.set('value', config.maxResults || 6);
 
@@ -474,6 +496,33 @@ define(
         }
       },
 
+      _processLocalSearchRadiusUnit: function() {
+        var options = [{
+          label: window.jimuNls.units.meters,
+          value: "meter"
+        }, {
+          label: window.jimuNls.units.kilometers,
+          value: "kilometer"
+        }, {
+          label: window.jimuNls.units.nauticalMiles,
+          value: "nauticalMile"
+        }, {
+          label: window.jimuNls.units.miles,
+          value: "mile"
+        }, {
+          label: window.jimuNls.units.yards,
+          value: "yard"
+        }, {
+          label: window.jimuNls.units.feet,
+          value: "foot"
+        }/*, {
+          label: window.jimuNls.units.inches,
+          value: "inch"
+        }*/];
+
+        this.radiusUnit.set('options', options);
+      },
+
       _processlocalSearchTable: function(enable) {
         if (enable) {
           html.removeClass(this.minScaleNode, 'hide-local-search-table');
@@ -484,7 +533,7 @@ define(
           html.setStyle(
             this.radiusHintNode.parentNode,
             'paddingBottom',
-            (radiusBox.h > defaultPB ? radiusBox.h : defaultPB) + 'px'
+            (radiusBox.h > defaultPB ? radiusBox.h + 10 : defaultPB) + 'px'
           );
         } else {
           html.addClass(this.minScaleNode, 'hide-local-search-table');
@@ -528,6 +577,18 @@ define(
             }), 100);
           }
         }
+      },
+
+      _controlZoomScaleTextBox: function() {
+        if(this.panToRadio.get('checked')){
+          this.zoomScale.set("disabled", true);
+        } else if(this.zoomToRadio.get('checked')){
+          this.zoomScale.set("disabled", false);
+        }
+      },
+
+      _onRadioClicke: function() {
+        this._controlZoomScaleTextBox();
       }
     });
   });

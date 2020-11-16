@@ -139,7 +139,7 @@
 }
 .claro .dijitCheckBox {
   background-color: $checkbox-background-color;
-  background-image: none;
+  background-image: none !important;
   border: 1px solid #ddd;
   width: 16px;
   height: 16px;
@@ -224,7 +224,7 @@
 /* inside a toggle button */
   width: 16px;
   height: 16px;
-  background: none;
+  background: none !important;
   border: 1px solid #3b8fc4;
   -webkit-border-radius: 50%;
   border-radius: 50%;
@@ -266,6 +266,11 @@
   opacity: 1;
   -ms-filter: none;
   filter: none;
+}
+.claro.jimu-nav-mode .dijitRadioFocused.dijitRadioChecked:after {
+  width: 10px;
+  height: 10px;
+  margin: 4px;
 }
 .claro .dijitRadioDisabled {
   opacity: 0.35;
@@ -388,6 +393,9 @@
   top: 4px;
   height: 22px;
   border-left: 1px solid #ddd;
+}
+.claro .jimu-date-value-selector .custom-date-text-box .dijitButtonNode {
+  overflow: hidden;
 }
 .claro .dijitComboBoxOpenHover .dijitButtonNode,
 .claro .dijitComboBox .dijitDownArrowButtonHover {
@@ -739,6 +747,11 @@
   -ms-transition: border-color 0.25s ease;
   transition: border-color 0.25s ease;
 }
+.claro .jimu-date-value-selector .custom-date-text-box{
+  height: 1px;
+  border: 0 !important;
+  top: 30px;
+}
 .claro .dijitTextArea {
   padding: 5px 10px;
   border: 1px solid #ddd;
@@ -956,7 +969,7 @@
 }
 .claro .dijitTooltipABRight .dijitTooltipConnector {
 /* above or below tooltip, but the arrow appears on the right,
-                and the right edges of target and tooltip are aligned rather than the left */
+		and the right edges of target and tooltip are aligned rather than the left */
   left: auto !important;
   right: 10px;
 }
@@ -1476,8 +1489,8 @@
   border-collapse: separate;
   -webkit-border-radius: 0;
   border-radius: 0;
-  -webkit-box-shadow: 0 7px 3px -4px rgba(0,0,0,0.3), 0 8px 8px rgba(0,0,0,0.2);
-  box-shadow: 0 7px 3px -4px rgba(0,0,0,0.3), 0 8px 8px rgba(0,0,0,0.2);
+  /* -webkit-box-shadow: 0 7px 3px -4px rgba(0,0,0,0.3), 0 8px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 7px 3px -4px rgba(0,0,0,0.3), 0 8px 8px rgba(0,0,0,0.2); */
 }
 .claro .dijitCalendarHover,
 .claro .dijitCalendar:hover,
@@ -1570,7 +1583,7 @@
   width: 24px;
   text-decoration: none;
   display: block;
-  padding: 5px 0;
+  padding: 2px 0;
   border: 1px solid transparent;
   -webkit-border-radius: 50%;
   border-radius: 50%;

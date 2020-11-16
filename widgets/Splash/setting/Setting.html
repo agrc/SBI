@@ -4,7 +4,6 @@
   </div>
   <!-- tabs -->
   <div class="tabs" data-dojo-attach-point="tabsContainer">
-
     <div class="content-tab" data-dojo-attach-point="contentTab">
       <div class="tab-description">${nls.contentDescription}</div>
       <div class="editor-container" data-dojo-attach-point="editorContainer">
@@ -16,6 +15,9 @@
       <div class="tab-description">${nls.appearanceDescription}</div>
       <div>
         <div data-dojo-attach-point="sizeSelector"></div>
+      </div>
+      <div>
+        <div data-dojo-attach-point="alignSelector"></div>
       </div>
       <div>
         <div data-dojo-attach-point="backgroundSelector"></div>
@@ -32,27 +34,29 @@
         <div class="titles">${nls.confirmLabelColor}</div>
         <div class="colorPicker" data-dojo-attach-point="confirmColorPickerEditor"></div>
       </div>
+    </div>
 
-      <div class="options-tab" data-dojo-attach-point="optionsTab">
-        <div class="tab-description">${nls.optionsDescription}</div>
-        <div class="splash-footer" data-dojo-attach-point="splashFooterNode">
-          <div class="require-list">
+    <div class="options-tab" data-dojo-attach-point="optionsTab">
+      <div class="tab-description">${nls.optionsDescription}</div>
+      <div class="splash-footer" data-dojo-attach-point="splashFooterNode">
+        <div class="require-list">
+          <fieldset id="require-type">
             <div class="require-item" data-dojo-attach-point="noRequireConfirmSplash">
-              <div data-dojo-type="jimu/dijit/RadioBtn" data-dojo-props="group:'requireItem'"></div>
-              <label class="jimu-leading-margin025">${nls.noRequireConfirm}</label>
+              <input data-dojo-type="dijit/form/RadioButton" name="require-type" id="noRequireRadio" data-dojo-attach-point="noRequireRadio"/>
+              <label for="noRequireRadio" class="jimu-leading-margin025">${nls.noRequireConfirm}</label>
             </div>
             <div data-dojo-attach-point="showOption"></div>
             <div class="require-item" data-dojo-attach-point="requireConfirmSplash">
-              <div data-dojo-type="jimu/dijit/RadioBtn" data-dojo-props="group:'requireItem'"></div>
-              <label class="jimu-leading-margin025">${nls.requireConfirm}</label>
+              <input data-dojo-type="dijit/form/RadioButton" name="require-type" id="requireConfirmRadio" data-dojo-attach-point="requireConfirmRadio"/>
+              <label for="requireConfirmRadio" class="jimu-leading-margin025">${nls.requireConfirm}</label>
             </div>
-            <div class="confirm-container" data-dojo-attach-point="confirmContainer">
-              <div class="confirm-text">
-                <span class="spinner-label jimu-ellipsis" title="${nls.confirmLabel}">${nls.confirmLabel}</span>
-                <input class="jimu-input jimu-float-trailing" type="text" value="${nls.defaultConfirmText}" data-dojo-attach-point="confirmText" data-dojo-attach-event="blur:_onConfirmTextBlur">
-              </div>
-              <div data-dojo-attach-point="confirmOption"></div>
+          </fieldset>
+          <div class="confirm-container" data-dojo-attach-point="confirmContainer">
+            <div class="confirm-text">
+              <span class="spinner-label jimu-ellipsis" title="${nls.confirmLabel}">${nls.confirmLabel}</span>
+              <input class="jimu-input jimu-float-trailing" type="text" value="${nls.defaultConfirmText}" data-dojo-attach-point="confirmText" data-dojo-attach-event="blur:_onConfirmTextBlur">
             </div>
+            <div data-dojo-attach-point="confirmOption"></div>
           </div>
         </div>
       </div>

@@ -10,9 +10,9 @@ define({
   "confirmOption": "Näytä aina tämä käynnistyskuva sovelluksen käynnistyessä",
   "backgroundColor": "Taustaväri",
   "content": "Sisältö",
-  "contentDescription": "Määritä käynnistyskuvassa näkyvä sisältö",
+  "contentDescription": "Määritä käynnistyskuvassa näkyvä sisältö.",
   "appearance": "Ulkoasu",
-  "appearanceDescription": "Määritä käynnistyskuvan ulkoasu",
+  "appearanceDescription": "Määritä käynnistyskuvan ulkoasu.",
   "size": "Koko",
   "width": "Leveys",
   "height": "Korkeus",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Kuvatäyttö",
   "chooseFile": "Valitse tiedosto",
   "noFileChosen": "Yhtään tiedostoa ei ole valittu",
-  "transparency": "Läpinäkyvyys",
   "sizeFill": "Täytä",
   "sizeFit": "Sovita",
   "sizeStretch": "Täytä venyttämällä",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Painikkeen väri",
   "buttonText": "Painikkeen teksti",
   "buttonTextColor": "Painikkeen tekstin väri",
+  "contentAlign": "Sisällön kohdistus",
+  "alignTop": "Yläosa",
+  "alignMiddle": "Keskikohta",
   "maskColor": "Maskin väri",
   "options": "Asetukset",
-  "optionsDescription": "Määritä käynnistyskuvan toiminta"
+  "optionsDescription": "Määritä käynnistyskuvan toiminta."
 });

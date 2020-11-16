@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,16 +24,19 @@ define([
   'dojo/_base/html',
   'dojo/_base/array',
   'dojo/on',
+  "dijit/a11yclick",
   'dojo/query',
   'dojo/Evented',
   'esri/graphic',
   'esri/layers/GraphicsLayer',
-  'esri/toolbars/draw',
+  // 'esri/toolbars/draw',
+  'jimu/dijit/Draw',
   'esri/symbols/jsonUtils',
   'esri/geometry/Polygon'
 ],
 function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, template, lang, html,
-  array, on, query, Evented, Graphic, GraphicsLayer, Draw, jsonUtils, Polygon) {
+  array, on, a11yclick, query, Evented, Graphic, GraphicsLayer, Draw, jsonUtils, Polygon) {
+  var instancesObj = {};
 
   return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, Evented], {
     templateString:template,
@@ -54,6 +57,7 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
     types:null,
     /*available geoTypes:
       ["POINT",
+       "ARROW",
        "LINE", "POLYLINE", "FREEHAND_POLYLINE",
        "TRIANGLE", "EXTENT", "CIRCLE", "ELLIPSE", "POLYGON", "FREEHAND_POLYGON",
        "TEXT"]
@@ -95,6 +99,7 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
     //css classes:
     //draw-item
     //point-icon
+    //arrow-icon
     //line-icon
     //polyline-icon
     //freehand-polyline-icon
@@ -121,8 +126,15 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
       this._initDefaultSymbols();
       this._initTypes();
       var items = query('.draw-item', this.domNode);
-      this.own(items.on('click', lang.hitch(this, this._onItemClick)));
-      this.own(on(this.btnClear, 'click', lang.hitch(this, this._onClickClear)));
+      items.forEach(function(item){
+        html.setAttr(item, 'role', 'button');
+        html.setAttr(item, 'tabindex', '0');
+      });
+      this.own(items.on(a11yclick, lang.hitch(this, this._onItemClick)));
+
+      html.setAttr(this.btnClear, 'role', 'button');
+      html.setAttr(this.btnClear, 'tabindex', '0');
+      this.own(on(this.btnClear, a11yclick, lang.hitch(this, this._onClickClear)));
       //bind key events before draw-end
       this.own(on(document.body, 'keydown', lang.hitch(this, function(event){
         this._shiftKey = !!event.shiftKey;
@@ -141,6 +153,8 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
       var display = this.showClear === true ? 'block' : 'none';
       html.setStyle(this.btnClear, 'display', display);
       this.enable();
+
+      instancesObj[this.id] = this;
     },
 
     enable: function(){
@@ -201,6 +215,7 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
       this.drawToolBar = null;
       this.map = null;
       this.drawLayer = null;
+      delete instancesObj[this.id];
       this.inherited(arguments);
     },
 
@@ -377,10 +392,13 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
       }else{
         this.geoTypes = [];
         if(!(this.types && this.types.length > 0)){
-          this.types = ['point', 'polyline', 'polygon'];
+          this.types = ['point', 'arrow', 'polyline', 'polygon'];
         }
         if(this.types.indexOf('point') >= 0){
           this.geoTypes = this.geoTypes.concat(["POINT"]);
+        }
+        if(this.types.indexOf('arrow') >= 0){
+          this.geoTypes = this.geoTypes.concat(["ARROW"]);
         }
         if(this.types.indexOf('polyline') >= 0){
           this.geoTypes = this.geoTypes.concat(["LINE", "POLYLINE", "FREEHAND_POLYLINE"]);
@@ -421,6 +439,8 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
     },
 
     _activate: function(itemIcon){
+      this._deactiveAllDrawBoxes();
+
       var items = query('.draw-item', this.domNode);
       items.removeClass('jimu-state-active');
       html.addClass(itemIcon, 'jimu-state-active');
@@ -481,7 +501,16 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, templat
       }
 
       this.onDrawEnd(g, geotype, commontype, this._shiftKey, this._ctrlKey, this._metaKey);
-    }
+    },
 
+    _deactiveAllDrawBoxes: function() {
+      var widget;
+      array.forEach(Object.keys(instancesObj), lang.hitch(this, function(key) {
+        widget = instancesObj[key];
+        if (widget && widget.drawToolBar && key !== this.id) {
+          widget.deactivate();
+        }
+      }));
+    }
   });
 });

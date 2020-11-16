@@ -1,9 +1,11 @@
 define({
-  "id": "Id.",
+  "id": "ID",
   "state": "De forma predeterminada, las coordenadas se mostrarán en el sistema de coordenadas del mapa actual. Para obtener coordenadas en otros sistemas de coordenadas, debes agregarlas y especificar las transformaciones apropiadas.",
   "outputUnit": "Unidad de salida",
   "wkid": "WKID de salida",
-  "label": "Nombre de sistema de coordenadas de salida",
+  "defaultTitle": "Predeterminado",
+  "label": "Nombre del sistema de coordenadas de salida",
+  "alias": "Etiqueta",
   "transformationWkid": "WKID de transformación",
   "transformationLabel": "Etiqueta de transformación",
   "transformForward": "Transformar adelante",
@@ -30,6 +32,7 @@ define({
   "Default": "Predeterminado",
   "Inches": "Pulgadas",
   "Foot": "Pies",
+  "Foot_US": "Feet_US",
   "Yards": "Yardas",
   "Miles": "Millas",
   "Nautical_Miles": "Millas náuticas",
@@ -39,7 +42,11 @@ define({
   "Kilometers": "Kilómetros",
   "Decimeters": "Decímetros",
   "Decimal_Degrees": "Grados decimales",
-  "Degree_Minutes_Seconds": "Grados/minutos/segundos",
+  "Degrees_Decimal_Minutes": "Grados Minutos decimales",
+  "Degree_Minutes_Seconds": "Grados minutos segundos",
   "MGRS": "MGRS",
-  "USNG": "USNG"
+  "USNG": "USNG",
+  "displayOrderLonLatTips": "Orden de visualización de coordenadas:",
+  "lonLatTips": "Longitud / Latitud (X, Y)",
+  "latLonTips": "Latitud / Longitud (Y, X)"
 });

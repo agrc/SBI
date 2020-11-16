@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,11 @@ define([
   'dijit/_TemplatedMixin',
   'dijit/_WidgetsInTemplateMixin',
   'dojo/text!./templates/_SingleFilterParameter.html',
-  'dojo/_base/lang'
+  'dojo/_base/lang',
+  '../utils'
 ],
   function(on, Evented, Deferred, declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, template,
-    lang) {
+    lang, jimuUtils) {
 
     return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, Evented], {
       baseClass: 'jimu-single-filter-parameter',
@@ -43,15 +44,18 @@ define([
 
       //public methods:
       //getValueObject
+      //build: partsObj -> UI
 
       //events:
       //change
+      //enter
 
       postCreate: function(){
         this.inherited(arguments);
-        this.valueProvider = this.valueProviderFactory.getValueProvider(this.part);
+        this.valueProvider = this.valueProviderFactory.getValueProvider(this.part, true);
         this.valueProvider.placeAt(this.valueProviderTd);
         this.own(on(this.valueProvider, 'change', lang.hitch(this, this._onValueProviderChanged)));
+        this.own(on(this.valueProvider, 'enter', lang.hitch(this, this._onValueProviderEnter)));
         this.valueProvider.bindChangeEvents();
       },
 
@@ -71,8 +75,8 @@ define([
         var interactiveObj = part.interactiveObj;
 
         if(interactiveObj){
-          this.promptNode.innerHTML = interactiveObj.prompt || '';
-          this.hintNode.innerHTML = interactiveObj.hint || '';
+          this.promptNode.innerHTML = jimuUtils.sanitizeHTML(interactiveObj.prompt || '');
+          this.hintNode.innerHTML = jimuUtils.sanitizeHTML(interactiveObj.hint || '');
         }
 
         var def = this.valueProvider.setValueObject(this.part.valueObj);
@@ -80,7 +84,7 @@ define([
           resultDef = def;
         }else{
           resultDef = new Deferred();
-          resultDef.resolve();
+          resultDef.resolve(this.valueProvider);
         }
 
         return resultDef;
@@ -109,6 +113,10 @@ define([
             _dijit.focusNode.blur();
           }
         }
+      },
+
+      _onValueProviderEnter: function(){
+        this.emit('enter');
       },
 
       _onValueProviderChanged: function(){

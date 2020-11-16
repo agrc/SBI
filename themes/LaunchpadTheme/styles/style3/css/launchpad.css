@@ -25,11 +25,11 @@ a:visited:hover {
   background-color: #fff;
   -webkit-border-radius: 25px;
   border-radius: 25px;
-  position: relative;
-  top: -2px;
-  left: 0;
   -webkit-box-shadow: 0 1px 0.5px rgba(0,0,0,0.3), 0 2px 2px rgba(0,0,0,0.2);
   box-shadow: 0 1px 0.5px rgba(0,0,0,0.3), 0 2px 2px rgba(0,0,0,0.2);
+}
+.claro .jimu-widget-header .logo a{
+  display: block;
 }
 .claro .jimu-widget-header .logo img {
   margin: 0 auto;
@@ -447,8 +447,44 @@ a:visited:hover {
 .claro .esriOverviewMap .ovwRestore:before {
   content: "N";
 }
-.claro.is-mobile .jimu-widget-overview {
-  display: none;
+.claro.is-mobile .jimu-widget-overview .esriOverviewMap .ovwController {
+  /*display: none;*/
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  margin: 5px;
+}
+.claro.is-mobile .esriOverviewMap.ovwTL:not(.a11y_maximized) {
+  top: 50px !important;
+  left: 5px !important;
+}
+.claro.is-mobile .esriOverviewMap.ovwTR:not(.a11y_maximized) {
+  top: 50px !important;
+  right: 5px !important;
+}
+.claro.is-mobile .esriOverviewMap.ovwBL:not(.a11y_maximized) {
+  bottom: 30px !important;
+  left: 5px !important;
+}
+.claro.is-mobile .esriOverviewMap.ovwBR:not(.a11y_maximized) {
+  bottom: 30px !important;
+  right: 5px !important;
+}
+.claro.is-mobile .esriOverviewMap.ovwTL .ovwContainer:not(.a11y_maximized) {
+  top: 35px;
+  left: 5px;
+}
+.claro.is-mobile .esriOverviewMap.ovwTR .ovwContainer:not(.a11y_maximized) {
+  top: 35px;
+  right: 5px;
+}
+.claro.is-mobile .esriOverviewMap.ovwBL .ovwContainer:not(.a11y_maximized) {
+  bottom: 35px;
+  left: 5px;
+}
+.claro.is-mobile .esriOverviewMap.ovwBR .ovwContainer:not(.a11y_maximized) {
+  bottom: 35px;
+  right: 5px;
 }
 .claro .esriScalebarLine {
   border-color: #6d6e70;
@@ -942,9 +978,6 @@ a:visited:hover {
   -webkit-box-shadow: none;
   box-shadow: none;
 }
-.claro .jimu-widget-basemapgallery .esriBasemapGalleryNode {
-  margin: 5px 5px 0;
-}
 .claro .jimu-widget-basemapgallery .esriBasemapGalleryNode:hover {
   color: #3b8fc4;
 }
@@ -998,6 +1031,7 @@ a:visited:hover {
   height: 3em;
   margin-top: 5px;
 }
+/*
 .claro .jimu-widget-timeslider {
   margin: 5px;
 }
@@ -1111,7 +1145,7 @@ a:visited:hover {
 }
 .claro .jimu-widget-timeslider .esriTimeSlider .tsPrevButton:before {
   content: "s";
-}
+}*/
 .claro .jimu-widget-bookmark .jimu-img-node {
   color: #6d6e70;
   -webkit-border-radius: 0;
@@ -1161,6 +1195,7 @@ a:visited:hover {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
+  transform: translate(0,0);
 }
 .claro .jimu-widget-bookmark .jimu-img-node.jimu-state-selected .node-label {
   background-color: transparent;
@@ -1415,13 +1450,14 @@ a:visited:hover {
 .claro.is-mobile .esriAttributeTableRefreshImage {
   display: none;
 }
+/*
 .claro .jimu-widget-swipe {
   background-color: transparent;
   margin: 5px;
 }
 .claro .jimu-widget-swipe .swipe-layer-menu {
   color: #6d6e70;
-  padding: 20px;
+  padding: 14px;
   background-color: #fff;
   -webkit-box-shadow: 0 7px 3px -4px rgba(0,0,0,0.3), 0 8px 8px rgba(0,0,0,0.2);
   box-shadow: 0 7px 3px -4px rgba(0,0,0,0.3), 0 8px 8px rgba(0,0,0,0.2);
@@ -1442,7 +1478,7 @@ a:visited:hover {
   -webkit-box-sizing: content-box;
   -moz-box-sizing: content-box;
   box-sizing: content-box;
-}
+}*/
 .claro .LayerSwipe .vertical,
 .claro .LayerSwipe .horizontal {
   background-color: #f8f8f8;
@@ -1635,6 +1671,12 @@ a:visited:hover {
   border-color: transparent;
   color: #fff;
 }
+.claro .simpleDirections .esriDirectionsButton.esriLineBarrierButton,
+.claro .simpleDirections .esriDirectionsButton.esriLineBarrierButton:hover {
+  width: 30px;
+  height: 30px;
+  margin: 5px 0;
+}
 .claro .simpleDirections .esriDirectionsButton.esriDirectionsButton {
   -webkit-border-radius: 0;
   border-radius: 0;
@@ -1728,6 +1770,9 @@ a:visited:hover {
 .claro .simpleDirections .esriRouteZoom:focus {
   background-color: #e6e6e6;
 }
+.claro .simpleDirections .esriSaveContainer .dijitSelect{
+  height: auto;
+}
 .claro .jimu-widget-draw.jimu-widget {
   padding: 0;
 }
@@ -1802,9 +1847,11 @@ a:visited:hover {
 .claro .jimu-draw-box .drawings-clear:hover {
   text-decoration: underline;
 }
+.claro .jimu-draw-box .point-icon,
 .claro .jimu-draw-box .line-icon,
 .claro .jimu-draw-box .polyline-icon,
 .claro .jimu-draw-box .freehand-polyline-icon,
+.claro .jimu-draw-box .arrow-icon,
 .claro .jimu-draw-box .triangle-icon,
 .claro .jimu-draw-box .extent-icon,
 .claro .jimu-draw-box .circle-icon,
@@ -1813,6 +1860,12 @@ a:visited:hover {
 .claro .jimu-draw-box .freehand-polygon-icon,
 .claro .jimu-draw-box .text-icon {
   background-image: none;
+}
+.claro .jimu-draw-box .point-icon:before {
+  content: "P";
+  font-size: 16px;
+  position: relative;
+  top: -1px;
 }
 .claro .jimu-draw-box .line-icon:before {
   content: "Q";
@@ -1823,11 +1876,16 @@ a:visited:hover {
 .claro .jimu-draw-box .freehand-polyline-icon:before {
   content: "S";
 }
+.claro .jimu-draw-box .arrow-icon:before {
+  content: "*";
+}
 .claro .jimu-draw-box .triangle-icon:before {
   content: "T";
 }
 .claro .jimu-draw-box .extent-icon:before {
   content: "U";
+  position: relative;
+  top: -3px;
 }
 .claro .jimu-draw-box .circle-icon:before {
   content: "V";
@@ -2042,6 +2100,7 @@ a:visited:hover {
 .claro .esriMeasurement .esriMeasurementSeparator {
   visibility: hidden;
   display: block;
+  clear: both;
 }
 .claro .esriMeasurement .esriMeasurementResultLabel {
   color: #333;
@@ -2062,6 +2121,14 @@ a:visited:hover {
   color: #3b8fc4;
   font-weight: bold;
   letter-spacing: 1px;
+}
+.claro .jimu-widget-Measurement .operations{
+  position: absolute;
+  top: 230px;
+  left: 50%;
+  margin-left: -40px;
+  text-align: center;
+  position: absolute;
 }
 .claro .jimu-widget-query {
   width: 100%;
@@ -2528,4 +2595,26 @@ a:visited:hover {
 }
 .claro .jimu-widget-analysis .esriAnalysis .toolbarIcon{
   background-image: url('./images/toolbar_icons.png');
+}
+
+.claro .jimu-widget-analysis .esriAnalysis .esriAnalysisSubmitButton.dijitButton>span.dijitButtonNode,
+.claro .jimu-widget-analysis .esriAnalysis .dijitButton.calcite > span.dijitButtonNode{
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 5px 10px;
+  -webkit-border-radius: 2px;
+  border-radius: 2px;
+  color: #333;
+}
+
+.claro .jimu-widget-analysis .esriAnalysis .esriAnalysisSubmitButton.dijitButton>span.dijitButtonNode .dijitButtonText,
+.claro .jimu-widget-analysis .esriAnalysis .dijitButton.calcite > span.dijitButtonNode .dijitButtonText {
+  line-height: 20px;
+}
+
+.claro .jimu-widget-analysis .esriAnalysis .esriAnalysisSubmitButton.dijitButtonHover>span.dijitButtonNode,
+.claro .jimu-widget-analysis .esriAnalysis .dijitButton.calcite.dijitButtonHover>span.dijitButtonNode{
+  color: #333;
+  background-color: #e6e6e6;
+  border-color: #d2d2d2;
 }

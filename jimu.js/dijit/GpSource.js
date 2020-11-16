@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,11 +26,14 @@ define([
   'dojo/Evented',
   'jimu/dijit/GpChooserFromPortal',
   'jimu/dijit/_GpServiceChooserContent',
-  'jimu/portalUrlUtils'
+  'jimu/portalUrlUtils',
+  'dijit/form/RadioButton'
 ],
 function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
   template, lang, html, on, Evented, GpChooserFromPortal,
   _GpServiceChooserContent, portalUrlUtils) {
+
+  var idCounter = 0;
 
   return declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, Evented], {
     templateString: template,
@@ -43,6 +46,8 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
 
     //GpChooserFromPortal options
     portalUrl: null,
+    uniqueID: null,
+    mode: null,
 
     //public methods:
     //getSelectedItems return[{name,url}]
@@ -50,6 +55,11 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
     //events:
     //ok
     //cancel
+
+    constructor: function() {
+      this.inherited(arguments);
+      this.uniqueID = ++idCounter;
+    },
 
     postMixInProperties: function(){
       this.nls = window.jimuNls.gpSource;
@@ -90,7 +100,14 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
       //create _GpServiceChooserContent
       this._createGpServiceChooserContent();
 
-      this._onRadioClicked();
+      this._onRadioClicked('url');
+
+      this.own(on(this.urlRadio, 'click', lang.hitch(this, function() {
+        this._onRadioClicked('url');
+      })));
+      this.own(on(this.portalRadio, 'click', lang.hitch(this, function() {
+        this._onRadioClicked('portal');
+      })));
     },
 
     _createGpChooserFromPortal: function(){
@@ -175,15 +192,22 @@ function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin,
       return str;
     },
 
-    _onRadioClicked: function(){
-      html.setStyle(this.hflcContainer, 'display', 'none');
-      html.setStyle(this.flscContainer, 'display', 'none');
-
-      if(this.portalRadio.checked){
-        html.setStyle(this.hflcContainer, 'display', 'block');
-        this.operationTip.innerHTML = this.nls.chooseItem;
+    _onRadioClicked: function(mode){
+      if (this.mode === mode) {
+        return;
       }
-      else if(this.urlRadio.checked){
+
+      this.mode = mode;
+      if(mode === 'portal'){
+        this.portalRadio.set('checked', true);
+        this.urlRadio.set('checked', false);
+        html.setStyle(this.hflcContainer, 'display', 'block');
+        html.setStyle(this.flscContainer, 'display', 'none');
+        this.operationTip.innerHTML = this.nls.chooseItem;
+      } else if(mode === 'url'){
+        this.portalRadio.set('checked', false);
+        this.urlRadio.set('checked', true);
+        html.setStyle(this.hflcContainer, 'display', 'none');
         html.setStyle(this.flscContainer, 'display', 'block');
         this.operationTip.innerHTML = this.nls.setServiceUrl;
         setTimeout(lang.hitch(this, function() {

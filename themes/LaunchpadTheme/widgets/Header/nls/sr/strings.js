@@ -1,6 +1,6 @@
 define({
   "_widgetLabel": "Zaglavlje",
-  "signin": "Prijavite se",
+  "signin": "Prijavi me",
   "signout": "Odjavite se",
   "about": "Više o",
   "signInTo": "Prijavite se na",

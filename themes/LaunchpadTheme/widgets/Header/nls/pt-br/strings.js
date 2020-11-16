@@ -1,6 +1,6 @@
 define({
   "_widgetLabel": "Cabeçalho",
-  "signin": "Acessar",
+  "signin": "Entrar",
   "signout": "Sair",
   "about": "Sobre o",
   "signInTo": "Entrar no",

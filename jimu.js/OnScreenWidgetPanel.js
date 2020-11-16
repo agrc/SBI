@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,36 +23,44 @@ define(['dojo/_base/declare',
     'jimu/BaseWidgetPanel',
     'jimu/utils',
     'dojox/layout/ResizeHandle',
+    "./a11y/OnScreenWidgetPanel",
     'dojo/touch'
   ],
   function(
     declare, lang, html, on, Move,
-    _TemplatedMixin, BaseWidgetPanel, utils, ResizeHandle
+    _TemplatedMixin, BaseWidgetPanel, utils, ResizeHandle, a11y
   ) {
     /* global jimuConfig */
-    return declare([BaseWidgetPanel, _TemplatedMixin], {
+    var clazz = declare([BaseWidgetPanel, _TemplatedMixin], {
       baseClass: 'jimu-panel jimu-on-screen-widget-panel jimu-main-background',
       _positionInfoBox: null,
       _originalBox: null,
       widgetIcon: null,
       _resizeOnOpen: true,
 
-      templateString: '<div data-dojo-attach-point="boxNode">' +
-        '<div class="jimu-panel-title jimu-main-background" data-dojo-attach-point="titleNode">' +
-        '<div class="title-label jimu-vcenter-text jimu-float-leading jimu-leading-padding1"' +
-        'data-dojo-attach-point="titleLabelNode">${label}</div>' +
-        '<div class="close-btn jimu-vcenter jimu-float-trailing" ' +
-        'data-dojo-attach-point="closeNode"' +
-        'data-dojo-attach-event="onclick:_onCloseBtnClicked,press:_onCloseBtnClicked"></div>' +
-        '<div class="max-btn jimu-vcenter jimu-float-trailing" ' +
-        'data-dojo-attach-point="maxNode"' +
-        'data-dojo-attach-event="onclick:_onMaxBtnClicked"></div>' +
-        '<div class="foldable-btn jimu-vcenter jimu-float-trailing" ' +
-        'data-dojo-attach-point="foldableNode"' +
-        'data-dojo-attach-event="onclick:_onFoldableBtnClicked"></div>' +
-        '</div>' +
-        '<div class="jimu-panel-content" data-dojo-attach-point="containerNode"></div>' +
+      templateString:
+        '<div data-dojo-attach-point="boxNode">' +
+          '<div class="jimu-panel-title jimu-main-background" data-dojo-attach-point="titleNode">' +
+          '<h2 class="title-label jimu-vcenter-text jimu-float-leading jimu-leading-padding1"' +
+          'data-dojo-attach-point="titleLabelNode" tabindex="-1" ' +
+          'data-dojo-attach-event="onkeydown:_onTitleLabelKeyDown">${label}</h2>' +
+          '<div class="btns-container">' +
+            '<div tabindex="0" class="foldable-btn jimu-vcenter" aria-label="${headerNls.foldWindow}" role="button"' +
+              'data-dojo-attach-point="foldableNode"' +
+              'data-dojo-attach-event="onclick:_onFoldableBtnClicked,onkeydown:_onFoldableBtnKeyDown"></div>' +
+            '<div tabindex="0" class="max-btn jimu-vcenter" aria-label="${headerNls.maxWindow}" role="button"' +
+              'data-dojo-attach-point="maxNode"' +
+              'data-dojo-attach-event="onclick:_onMaxBtnClicked,onkeydown:_onMaxBtnKeyDown"></div>' +
+            '<div tabindex="0" class="close-btn jimu-vcenter" aria-label="${headerNls.closeWindow}" role="button"' +
+              'data-dojo-attach-point="closeNode"' +
+              'data-dojo-attach-event="onclick:_onCloseBtnClicked,onkeydown:_onCloseBtnKey"></div>' +
+          '</div></div>' +
+          '<div class="jimu-panel-content" data-dojo-attach-point="containerNode"></div>' +
         '</div>',
+
+      postMixInProperties:function(){
+        this.headerNls = window.jimuNls.panelHeader;
+      },
 
       postCreate: function() {
         this._originalBox = {
@@ -68,6 +76,8 @@ define(['dojo/_base/declare',
         this._makeOriginalBox();
         this.makePositionInfoBox();
         this.makeMoveable(this._positionInfoBox.w, this._positionInfoBox.w * 0.25);
+
+        this.a11y_init();
       },
 
       _onMaxBtnClicked: function(evt) {
@@ -75,39 +85,51 @@ define(['dojo/_base/declare',
         var posInfo = this._getPositionInfo();
         if (posInfo.isRunInMobile) {
           if (this.windowState === 'maximized') {
+            html.setAttr(this.maxNode, 'aria-label', this.headerNls.maxWindow);
             this.panelManager.normalizePanel(this);
           } else {
+            html.setAttr(this.maxNode, 'aria-label', this.headerNls.restoreWindow);
             this.panelManager.maximizePanel(this);
+            //set foldable btn's styles
+            html.removeClass(this.foldableNode, 'fold-up');
+            html.addClass(this.foldableNode, 'fold-down');
+            html.setAttr(this.foldableNode, 'aria-label', this.headerNls.foldWindow);
           }
           this._setMobilePosition();
         }
+
+        this.panelManager.activatePanel(this);
       },
 
       _onFoldableBtnClicked: function(evt) {
-        evt.stopPropagation();
+        if(evt){
+          evt.stopPropagation();
+        }
         var posInfo = this._getPositionInfo();
         if (posInfo.isRunInMobile) {
           if (this.windowState === 'minimized') {
             html.removeClass(this.foldableNode, 'fold-up');
             html.addClass(this.foldableNode, 'fold-down');
+            html.setAttr(this.foldableNode, 'aria-label', this.headerNls.foldWindow);
             this.panelManager.normalizePanel(this);
           } else {
             html.removeClass(this.foldableNode, 'fold-down');
             html.addClass(this.foldableNode, 'fold-up');
+            html.setAttr(this.foldableNode, 'aria-label', this.headerNls.unfoldWindow);
             this.panelManager.minimizePanel(this);
           }
+          //set max btn's label
+          html.setAttr(this.maxNode, 'aria-label', this.headerNls.maxWindow);
           this._setMobilePosition();
         }
       },
 
       _onCloseBtnClicked: function(evt) {
-        this.panelManager.closePanel(this);
+        //avoid to touchEvent pass through the closeBtn
+        evt.preventDefault();
         evt.stopPropagation();
 
-        //avoid to touchEvent pass through the closeBtn
-        if (evt.type === "touchstart") {
-          evt.preventDefault();
-        }
+        this.panelManager.closePanel(this);
       },
 
       _normalizePositionObj: function(position) {
@@ -188,6 +210,13 @@ define(['dojo/_base/declare',
           this._resizeOnOpen = false;
         }
 
+        if (window.appInfo.isRunInMobile) {
+          this._setMobilePosition();
+          if(utils.isInNavMode() && this.windowState === 'minimized') {
+            this._onFoldableBtnClicked();
+          }
+        }
+
         this.inherited(arguments);
       },
 
@@ -200,9 +229,11 @@ define(['dojo/_base/declare',
         if (this.windowState === 'normal') {
           html.removeClass(this.foldableNode, 'fold-up');
           html.addClass(this.foldableNode, 'fold-down');
+          html.setAttr(this.foldableNode, 'aria-label', this.headerNls.foldWindow);
         } else {
           html.removeClass(this.foldableNode, 'fold-down');
           html.addClass(this.foldableNode, 'fold-up');
+          html.setAttr(this.foldableNode, 'aria-label', this.headerNls.unfoldWindow);
         }
       },
 
@@ -291,8 +322,24 @@ define(['dojo/_base/declare',
         if (!window.appInfo.isRunInMobile) {
           if (window.isRTL) {
             result.position.left = layoutBox.w - leftBlankWidth;
+
+            // prevent the panel out of map content
+            if ((result.position.left + this._positionInfoBox.w) > layoutBox.w) {
+              result.position.left -= this._positionInfoBox.w;
+              if (result.position.left < 0) {
+                result.position.left = layoutBox.w - this._positionInfoBox.w;
+              }
+            }
           } else {
             result.position.left = leftBlankWidth;
+            // prevent the panel out of map content
+            if ((result.position.left + this._positionInfoBox.w) > layoutBox.w) {
+              if (layoutBox.w > this._positionInfoBox.w) {
+                result.position.left = layoutBox.w - this._positionInfoBox.w;
+              } else {
+                result.position.left = 0;
+              }
+            }
           }
         } else {
           result.isRunInMobile = true;
@@ -310,12 +357,6 @@ define(['dojo/_base/declare',
         } else {
           if (bottomBlankHeight >= this._positionInfoBox.h) {
             result.position.top = this._positionInfoBox.t + 40 + 3; // preloadIcon height is 40px
-          }
-        }
-
-        if (!result.isRunInMobile) {
-          if ((result.position.left + this._positionInfoBox.w) > layoutBox.w) {
-            result.position.left -= this._positionInfoBox.w;
           }
         }
 
@@ -369,4 +410,7 @@ define(['dojo/_base/declare',
         this.makePositionInfoBox();
       }
     });
+
+    clazz.extend(a11y);//for a11y
+    return clazz;
   });

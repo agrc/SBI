@@ -10,9 +10,9 @@ define({
   "confirmOption": "Visualizza sempre questa schermata iniziale a ogni avvio dell'app",
   "backgroundColor": "Colore di sfondo",
   "content": "Contenuto",
-  "contentDescription": "Definire il contenuto visualizzato nella schermata di avvio",
+  "contentDescription": "Definire il contenuto visualizzato nella schermata di avvio.",
   "appearance": "Aspetto",
-  "appearanceDescription": "Impostare l'aspetto della schermata di avvio",
+  "appearanceDescription": "Impostare l'aspetto della schermata di avvio.",
   "size": "Dimensione",
   "width": "Larghezza",
   "height": "Altezza",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Immagine di riempimento",
   "chooseFile": "Seleziona file",
   "noFileChosen": "Nessun file selezionato",
-  "transparency": "Trasparenza",
   "sizeFill": "Riempi",
   "sizeFit": "Misura",
   "sizeStretch": "Adatta allo sfondo",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Colore pulsante",
   "buttonText": "Testo pulsante",
   "buttonTextColor": "Colore testo pulsante",
+  "contentAlign": "Allineamento contenuto",
+  "alignTop": "In alto",
+  "alignMiddle": "Mezzo",
   "maskColor": "Colore maschera",
   "options": "Opzioni",
-  "optionsDescription": "Impostare il comportamento della schermata di avvio"
+  "optionsDescription": "Impostare il comportamento della schermata di avvio."
 });

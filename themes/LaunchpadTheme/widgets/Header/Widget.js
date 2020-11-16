@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ define([
     'dojo/_base/lang',
     'dojo/_base/array',
     'dojo/_base/html',
-    'dojo/dom-class',
     'dojo/_base/window',
     'dojo/window',
     'dojo/query',
     'dojo/on',
+    'dojo/keys',
     //'dojo/topic',
     'dojo/Deferred',
     'jimu/BaseWidget',
@@ -33,7 +33,7 @@ define([
     'dojo/NodeList-dom',
     'dojo/NodeList-manipulate'
   ],
-  function(declare, lang, array, html, domClass, winBase, win, query, on,
+  function(declare, lang, array, html, winBase, win, query, on, keys,
     Deferred, BaseWidget, WidgetManager, LayoutManager, utils) {
     /* global jimuConfig */
     /*jshint scripturl:true*/
@@ -44,8 +44,14 @@ define([
 
       switchableElements: {},
       _boxSizes: null,
+      _searchWidgetId: "",
 
       moveTopOnActive: false,
+
+      postMixInProperties: function(){
+        this.inherited(arguments);
+        this.isRenderIdForAttrs = true;
+      },
 
       constructor: function() {
         this.height = this.getHeaderHeight() + 'px';
@@ -53,26 +59,25 @@ define([
         this.LayoutManager = LayoutManager.getInstance();
       },
 
+
       postCreate: function() {
         this.inherited(arguments);
-
+        this._boxSizes = {};
+        //search widget may be created before header widget.
         this.own(on(this.widgetManager, 'widget-created', lang.hitch(this, function(widget) {
           if(widget.name === 'Search') {
-            var searchWidget = this._getSearchWidgetInHeader();
-            if (searchWidget) {
-              html.addClass(searchWidget.domNode, 'has-transition');
-              // check if the search dijit has been parsed within the search widget
-              // if not, wait until it is ready, and then call resize()
-              if(searchWidget && !searchWidget.searchDijit) {
-                this._searchDijitDomReady(searchWidget).then(lang.hitch(this, function(){
-                  this.resize();
-                }));
-              }else{
-                this.resize();
-              }
-            }
+            this._initSearchWidgetAfterCreated();
           }
         })));
+
+        this.own(on(this.widgetManager, 'widget-destroyed', lang.hitch(this, function(widgetId) {
+          if(widgetId && widgetId === this._searchWidgetId) {
+            this._detachSearchWidget();
+            this.resize();
+          }
+        })));
+
+        this._initSearchWidgetAfterCreated();
 
         var logoW = this.getLogoWidth() + 'px';
 
@@ -85,6 +90,8 @@ define([
         //this.switchableElements.links = query('.links', this.domNode);
         this.switchableElements.subtitle = query('.jimu-subtitle', this.domNode);
 
+        this._handleTitleColorAndLogoLink(this.appConfig);
+
         this.switchableElements.logo.style({
           height: logoW
         });
@@ -92,16 +99,60 @@ define([
         this._setElementsSize();
       },
 
+      _initSearchWidgetAfterCreated: function(){
+        if(!this._isInitSearchWidget || this.appConfig.mode === 'config'){
+          var searchWidget = this._getSearchWidgetInHeader();
+          if (searchWidget) {
+            //reset tabindex to make it within header
+            html.setAttr(searchWidget.domNode, 'tabindex', this.tabIndex);
+            html.addClass(searchWidget.domNode, 'has-transition');
+            // check if the search dijit has been parsed within the search widget
+            // if not, wait until it is ready, and then call resize()
+            if(searchWidget && !searchWidget.searchDijit) {
+              this._searchDijitDomReady(searchWidget).then(lang.hitch(this, function(){
+                this.resize();
+              }));
+            }else{
+              this.resize();
+            }
+            this._isInitSearchWidget = true;
+          }
+        }
+      },
+
+      _attachSearchWidget: function(searchWidget) {
+        if(!searchWidget) {
+          searchWidget = this._getSearchWidgetInHeader();
+        }
+        if(!searchWidget || html.isDescendant(searchWidget.domNode, this.searchNode)) {
+          return;
+        }
+        searchWidget.domNode.style.position = 'relative';
+        searchWidget.domNode.style.left = 'auto';
+        searchWidget.domNode.style.right = 'auto';
+        searchWidget.domNode.style.top = 'auto';
+        searchWidget.domNode.style.bottom = 'auto';
+        searchWidget.domNode.style.width = '280px';
+        html.place(searchWidget.domNode, this.searchNode);
+        this._boxSizes.searchWidgetBox = {w: 280, h: 30};
+      },
+
+      _detachSearchWidget: function() {
+        html.empty(this.searchNode);
+        this._boxSizes.searchWidgetBox = {w: 0, h: 0};
+      },
+
       _getSearchWidgetInHeader: function() {
         var result;
         var searchWidgets = this.widgetManager.getWidgetsByName('Search');
 
-        array.some(searchWidgets, function(widget) {
+        array.some(searchWidgets, lang.hitch(this, function(widget) {
           if (!widget.closeable && widget.isOnScreen) {
             result = widget;
+            this._searchWidgetId = widget.id;
             return true;
           }
-        });
+        }));
         return result;
       },
 
@@ -112,6 +163,10 @@ define([
         // Logo
         if (this.appConfig && this.appConfig.logo) {
           this.logoNode.src = this.appConfig.logo;
+          this.own(on(this.logoNode, "load", lang.hitch(this, function () {
+            this._boxSizes.logoBox = html.getMarginSize(this.logoWrapperNode);
+            this.resize();
+          })));
           html.removeClass(this.logoWrapperNode, 'hide-logo');
         } else {
           this.logoNode.src = "";
@@ -136,9 +191,6 @@ define([
 
         // Show links placeholder button (if needed)
         this._determineLinksButtonVisibility(this.appConfig.links);
-
-        this._updateBoxsizes();
-        this.resize();
       },
 
       _searchDijitDomReady: function(searchWidget) {
@@ -159,18 +211,18 @@ define([
 
       onAppConfigChanged: function(appConfig, reason, changedData) {
         switch (reason) {
-        case 'attributeChange':
-          this._onAttributeChange(appConfig, changedData);
-          this._updateBoxsizes();
-          this.resize();
-          break;
-        case 'widgetChange':
-          if(changedData.name === 'Search'){
+          case 'attributeChange':
+            this._onAttributeChange(appConfig, changedData);
+            this._updateBoxsizes();
             this.resize();
-          }
-          break;
-        default:
-          return;
+            break;
+          case 'widgetChange':
+            if(changedData.name === 'Search'){
+              this.resize();
+            }
+            break;
+          default:
+            return;
         }
         this.appConfig = appConfig;
       },
@@ -179,10 +231,21 @@ define([
         /*jshint unused: false*/
         if ('title' in changedData && changedData.title !== this.appConfig.title) {
           this.switchableElements.title.innerHTML(utils.sanitizeHTML(changedData.title));
+          html.setStyle(this.titleNode, {
+            display: changedData.title ? '' : 'none'
+          });
         }
         if ('subtitle' in changedData && changedData.subtitle !== this.appConfig.subtitle) {
           this.switchableElements.subtitle.innerHTML(utils.sanitizeHTML(changedData.subtitle));
+          html.setStyle(this.subtitleNode, {
+            display: changedData.subtitle ? '' : 'none'
+          });
         }
+        if (html.getStyle(this.titleNode, 'display') !== 'none' ||
+          html.getStyle(this.subtitleNode, 'display') !== 'none') {
+          html.setStyle(this.titlesNode, 'width', '1000px');
+        }
+
         if ('logo' in changedData && changedData.logo !== this.appConfig.logo) {
           if(changedData.logo){
             html.setAttr(this.logoNode, 'src', changedData.logo);
@@ -196,6 +259,22 @@ define([
           this._createDynamicLinks(changedData.links);
           this._determineLinksButtonVisibility(changedData.links);
         }
+
+        this._handleTitleColorAndLogoLink(appConfig);
+      },
+
+      _handleTitleColorAndLogoLink: function(appConfig){
+        if(appConfig.titleColor){
+          html.setStyle(this.switchableElements.title, 'color', appConfig.titleColor);
+        }else{
+          html.setStyle(this.switchableElements.title, 'color', '');
+        }
+
+        utils.themesHeaderLogoA11y(appConfig, this.tabIndex, {
+          link: this.logoLinkNode,
+          logo: this.logoNode,
+          icon: this.logoNode
+        });
       },
 
       _setElementsSize: function() {
@@ -218,8 +297,11 @@ define([
         html.empty(this.dynamicLinksNode);
         array.forEach(links, function(link) {
           html.create('a', {
+            role: 'link',
+            tabindex: '0',
             href: link.url,
             target: '_blank',
+            rel: "noopener noreferrer",
             innerHTML: utils.sanitizeHTML(link.label),
             'class': "link"
           }, this.dynamicLinksNode);
@@ -235,15 +317,57 @@ define([
       },
 
       _showLinksIcon: function() {
+        html.setAttr(this.linksIconNode, 'tabindex', this.tabIndex);
+        this._firstLink = utils.getFocusNodesInDom(this.linksNode)[0];
+        var _dynamicLinks = query('a', this.dynamicLinksNode);
+        this._lastDynamicLink = _dynamicLinks[_dynamicLinks.length - 1];
         html.setAttr(this.linksIconImageNode, 'src', this.folderUrl + 'images/link_icon.png');
         html.setStyle(this.linksIconNode, 'display', 'block');
         html.addClass(winBase.body(), 'header-has-links');
-        var newHeaderWidth = this.domNode.clientWidth + this.getLinksWidth();
-        html.setStyle(this.domNode, 'width', newHeaderWidth + 'px');
 
         if(!this.linksIconClicked) {
           this.linksIconClicked = on(this.linksIconNode, 'click', lang.hitch(this, function() {
             this._toggleLinksMenu();
+          }));
+
+          on(this.linksIconNode, 'keydown', lang.hitch(this, function(evt) {
+            var currentLink = evt.target;
+            if(html.hasClass(currentLink, 'links-icon')){
+              if(evt.keyCode === keys.ENTER){
+                this._toggleLinksMenu();
+                this._firstLink.focus();
+              }
+            }else{ //links Menu
+              if(evt.keyCode === keys.ESCAPE || evt.keyCode === keys.TAB){
+                evt.preventDefault();
+                evt.stopPropagation();
+                this._toggleLinksMenu();
+                this.linksIconNode.focus();
+              }else{
+                var nextLink;
+                if(evt.keyCode === keys.DOWN_ARROW){
+                  nextLink = currentLink.nextElementSibling;
+                  if(!nextLink){
+                    nextLink = this.appConfig.about ? this.aboutNode : currentLink;
+                  }
+                }else if(evt.keyCode === keys.UP_ARROW){
+                  if(currentLink === this._firstLink){
+                    nextLink = this._firstLink;
+                  }else if(currentLink === this.aboutNode){
+                    nextLink = this._lastDynamicLink;
+                  }else{
+                    nextLink = currentLink.previousSibling;
+                  }
+                }else if(evt.keyCode === keys.HOME){
+                  nextLink = this._firstLink;
+                }else if(evt.keyCode === keys.END){
+                  nextLink = this.appConfig.about ? this.aboutNode : this._lastDynamicLink;
+                }
+                if(nextLink){
+                  nextLink.focus();
+                }
+              }
+            }
           }));
         }
       },
@@ -269,38 +393,51 @@ define([
         }));
       },
 
-      _updateBoxsizes: function() {
-        var logoBox = html.getMarginSize(this.logoWrapperNode);
-        var titleBox = {
-          w: 0,
-          h: 0
-        };
-        if(this.switchableElements.title.innerHTML()){
-          titleBox = html.getMarginSize(this.titleNode);
-          domClass.add(this.subtitleNode, 'jimu-leading-margin2');
-        }else{
-          domClass.remove(this.subtitleNode, 'jimu-leading-margin2');
+      _onAboutKeydown: function(evt) {
+        if(evt.keyCode === keys.ENTER){
+          this._onAboutClick();
         }
+      },
 
-        var subTitleBox = {
-          w: 0,
-          h: 0
-        };
-        if(this.switchableElements.subtitle.innerHTML()){
+      _updateBoxsizes: function() {
+        var logoBox = this._boxSizes.logoBox;
+        if (html.getStyle(this.logoWrapperNode, 'display') !== 'none') {
+          logoBox = html.getMarginSize(this.logoWrapperNode);
+        } else {
+          logoBox = {w:0, h: 0};
+        }
+        this._boxSizes.logoBox = logoBox;
+
+        var titleBox = this._boxSizes.titleBox;
+        if (html.getStyle(this.titleNode, 'display') !== 'none' && this.switchableElements.title.innerHTML()){
+          titleBox = html.getMarginSize(this.titleNode);
+        }
+        if(!titleBox) {
+          titleBox = {w:0, h: 0};
+        }
+        this._boxSizes.titleBox = titleBox;
+
+        var subTitleBox = this._boxSizes.subTitleBox;
+        if(html.getStyle(this.subtitleNode, 'display') !== 'none' && this.switchableElements.subtitle.innerHTML()) {
           subTitleBox = html.getMarginSize(this.subtitleNode);
         }
-        var searchWidgetBox = {l: 0, t: 0, w: 0, h: 0};
-        var LinksIconBox = {l: 0, t: 0, w: 10, h: 0}; // "w:10": leave some space to the edge
+        if (!subTitleBox) {
+          subTitleBox = {w:0, h: 0};
+        }
+        this._boxSizes.subTitleBox = subTitleBox;
+        html.setStyle(this.titlesNode, 'width', 'auto');
+
+        var LinksIconBox = this._boxSizes.LinksIconBox; // "w:10": leave some space to the edge
         if(this.linksIconNode.style.display !== 'none') {
           LinksIconBox = html.getMarginSize(this.linksIconNode);
+        } else {
+          LinksIconBox = {w:0, h: 0};
         }
-        this._boxSizes = {
-          logoBox: logoBox,
-          titleBox: titleBox,
-          subTitleBox: subTitleBox,
-          searchWidgetBox: searchWidgetBox,
-          LinksIconBox: LinksIconBox
-        };
+        this._boxSizes.LinksIconBox = LinksIconBox;
+
+        if (!this._boxSizes.searchWidgetBox) {
+          this._boxSizes.searchWidgetBox = {w: 0, h: 0};
+        }
       },
 
       setPosition: function(position, containerNode){
@@ -310,6 +447,7 @@ define([
         this.position = position;
         var style = utils.getPositionStyle(this.position);
         style.position = 'absolute';
+        style.width = 'auto';
 
         if(!containerNode){
           if(position.relativeTo === 'map'){
@@ -327,71 +465,57 @@ define([
       },
 
       resize: function() {
+        if(!this._started){
+          return;
+        }
+        if (!this._boxSizes.logoBox || !this._boxSizes.titleBox ||
+            !this._boxSizes.subTitleBox || !this._boxSizes.searchWidgetBox ||
+            !this._boxSizes.LinksIconBox) {
+          this._updateBoxsizes();
+        }
         var boxSizes = this._boxSizes;
         // whether the app is in mobile mode
         if(window.appInfo.isRunInMobile){
           html.addClass(winBase.body(), 'is-mobile');
+          this._detachSearchWidget();
         }else {
           html.removeClass(winBase.body(), 'is-mobile');
+          this._attachSearchWidget();
 
           // Space reserved to show off screen widget icons to the right of the header
           var winBox = win.getBox();
-          var offsetRight = 250;
-          var searchWidget = this._getSearchWidgetInHeader();
-          if(searchWidget){
-            boxSizes.searchWidgetBox = html.getMarginSize(searchWidget.domNode);
-          }
+          var offsetRight = 300, left = 15;
+
           // Total width of the content in the header
+          // var contentPadding = 20;
           var contentWidth = boxSizes.logoBox.w + boxSizes.titleBox.w + boxSizes.subTitleBox.w +
-              20 + boxSizes.searchWidgetBox.w + boxSizes.LinksIconBox.w;
-          if(15 + contentWidth + offsetRight < winBox.w) {  // enough space to show everything
-            this.domNode.style.width = contentWidth + 'px';
-            var paddingLeft = 20;
-            if(boxSizes.titleBox.w + boxSizes.subTitleBox.w === 0){
-              paddingLeft = 15;
-            }
-            if(searchWidget) {
-              if(window.isRTL){
-                searchWidget.domNode.style.right = boxSizes.logoBox.w +
-                  boxSizes.titleBox.w + boxSizes.subTitleBox.w + 15 + paddingLeft + 'px';
-              }else{
-                searchWidget.domNode.style.left = boxSizes.logoBox.w +
-                  boxSizes.titleBox.w + boxSizes.subTitleBox.w + 15 + paddingLeft + 'px';
-              }
-            }
-            this.titlesNode.style.visibility = 'visible';
-            this.subtitleNode.style.visibility = 'visible';
+              boxSizes.searchWidgetBox.w + boxSizes.LinksIconBox.w;
+
+          if (contentWidth === 0) {
+            html.setStyle(this.domNode, 'visibility', 'hidden');
+            return;
           } else {
-            var newHeaderWidth;
-            if(15 + contentWidth - boxSizes.subTitleBox.w + offsetRight < winBox.w) {
+            html.setStyle(this.domNode, 'visibility', 'visible');
+          }
+
+          if (contentWidth === boxSizes.logoBox.w || contentWidth === boxSizes.LinksIconBox.w) {
+            html.setStyle(this.titlesNode, 'display', 'none');
+          } else {
+            html.setStyle(this.titlesNode, 'display', 'flex');
+          }
+
+          if(left + contentWidth + offsetRight < winBox.w) {  // enough space to show everything
+            this.titleNode.style.display = 'block';
+            this.subtitleNode.style.display = 'block';
+          } else {
+            if(left + contentWidth - boxSizes.subTitleBox.w + offsetRight < winBox.w) {
               // not enough space to show subtitle
-              newHeaderWidth = boxSizes.logoBox.w + 10 + boxSizes.searchWidgetBox.w +
-                boxSizes.titleBox.w + boxSizes.LinksIconBox.w;
-              this.domNode.style.width = newHeaderWidth + 'px';
-              if(searchWidget){
-                var newOffsetLeft = 15 + newHeaderWidth - boxSizes.LinksIconBox.w -
-                    boxSizes.searchWidgetBox.w;
-                if(window.isRTL){
-                  searchWidget.domNode.style.right = newOffsetLeft + 10 + 'px';
-                }else{
-                  searchWidget.domNode.style.left = newOffsetLeft + 10 + 'px';
-                }
-              }
-              this.titlesNode.style.visibility = 'visible';
-              this.subtitleNode.style.visibility = 'hidden';
-            } else { // not enough space to show tile and subtitle
-              newHeaderWidth = boxSizes.logoBox.w + 10 + boxSizes.searchWidgetBox.w +
-                boxSizes.LinksIconBox.w;
-              this.domNode.style.width = newHeaderWidth + 'px';
-              if(searchWidget) {
-                if(window.isRTL){
-                  searchWidget.domNode.style.right = 15 + boxSizes.logoBox.w + 10 + 'px';
-                }else{
-                  searchWidget.domNode.style.left = 15 + boxSizes.logoBox.w + 10 + 'px';
-                }
-              }
-              this.titlesNode.style.visibility = 'hidden';
-              this.subtitleNode.style.visibility = 'hidden';
+              this.titleNode.style.display = 'block';
+              this.subtitleNode.style.display = 'none';
+            } else {
+              // not enough space to show tile and subtitle
+              this.titleNode.style.display = 'none';
+              this.subtitleNode.style.display = 'none';
             }
           }
         }

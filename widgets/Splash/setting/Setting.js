@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,12 +23,13 @@ define([
     'dojo/cookie',
     'dojo/sniff',
     'dojo/query',
-    './ColorPickerEditor',
+    'jimu/dijit/ColorTransparencyPicker',
     './BackgroundSelector',
     './SizeSelector',
-    'dijit/registry',
+    './AlignSelector',
     'dijit/_WidgetsInTemplateMixin',
     'dijit/Editor',
+    'jimu/dijit/EditorXssFilter',
     'jimu/utils',
     'jimu/BaseWidgetSetting',
     "jimu/dijit/CheckBox",
@@ -49,11 +50,14 @@ define([
     'dojox/editor/plugins/InsertAnchor',
     'dojox/editor/plugins/Blockquote',
     'dojox/editor/plugins/UploadImage',
-    './ChooseImage'
+    'jimu/dijit/EditorChooseImage',
+    'jimu/dijit/EditorTextColor',
+    'jimu/dijit/EditorBackgroundColor'
   ],
-  function(declare, lang, html, on, aspect, cookie, has, query, ColorPickerEditor, BackgroundSelector, SizeSelector,
-           registry, _WidgetsInTemplateMixin,
-           Editor, utils, BaseWidgetSetting, CheckBox, TabContainer, LoadingShelter, Deferred) {
+  function(declare, lang, html, on, aspect, cookie, has, query,
+           ColorTransparencyPicker, BackgroundSelector, SizeSelector, AlignSelector,
+           _WidgetsInTemplateMixin, Editor, EditorXssFilter,
+           utils, BaseWidgetSetting, CheckBox, TabContainer, LoadingShelter, Deferred) {
     return declare([BaseWidgetSetting, _WidgetsInTemplateMixin], {
       baseClass: 'jimu-widget-splash-setting',
       _defaultSize: {mode: "wh", wh: {w: 600, h: 264}},
@@ -63,6 +67,7 @@ define([
 
       postMixInProperties: function() {
         this.nls = lang.mixin(this.nls, window.jimuNls.common);
+        this.editorXssFilter = EditorXssFilter.getInstance();
       },
       postCreate: function() {
         //LoadingShelter
@@ -87,6 +92,13 @@ define([
         });
         this.tab.placeAt(this.tabsContainer);
         this.tab.startup();
+        //the editor of first page, need to calculate scroll bar
+        this.own(on(this.tab, 'tabChanged', lang.hitch(this, function(title) {
+          if (title === this.nls.content) {
+            this.resize();
+          }
+        })));
+
         this.inherited(arguments);
       },
       initContentTab: function() {
@@ -115,10 +127,13 @@ define([
         this.backgroundSelector = new BackgroundSelector({nls: this.nls}, this.backgroundSelector);
         this.backgroundSelector.startup();
 
-        this.buttonColorPicker = new ColorPickerEditor({nls: this.nls}, this.buttonColorPickerEditor);
+        this.alignSelector = new AlignSelector({nls: this.nls}, this.alignSelector);
+        this.alignSelector.startup();
+
+        this.buttonColorPicker = new ColorTransparencyPicker({}, this.buttonColorPickerEditor);
         this.buttonColorPicker.startup();
 
-        this.confirmColorPicker = new ColorPickerEditor({nls: this.nls}, this.confirmColorPickerEditor);
+        this.confirmColorPicker = new ColorTransparencyPicker({}, this.confirmColorPickerEditor);
         this.confirmColorPicker.startup();
       },
       initOptionsTab: function() {
@@ -156,20 +171,29 @@ define([
         this.initOptionsTab();
 
         this.setConfig(this.config);
+
+        this.resize();
       },
 
       initEditor: function() {
         this.editor = new Editor({
           plugins: [
-            'bold', 'italic', 'underline', 'foreColor', 'hiliteColor',
+            'bold', 'italic', 'underline',
+            utils.getEditorTextColor("splash"), utils.getEditorBackgroundColor("splash"),
             '|', 'justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull',
             '|', 'insertOrderedList', 'insertUnorderedList', 'indent', 'outdent'
           ],
           extraPlugins: [
             '|', 'createLink', 'unlink', 'pastefromword', '|', 'undo', 'redo',
-            '|', 'chooseImage', 'uploadImage', 'toolbarlinebreak',
-            'fontName', 'fontSize', 'formatBlock'
-          ]
+            '|', 'chooseImage', '|', 'viewsource', 'toolbarlinebreak',
+            {
+              name: "dijit._editor.plugins.FontChoice",
+              command: "fontName",
+              custom: "Arial;Comic Sans MS;Courier New;Garamond;Tahoma;Times New Roman;Verdana".split(";")
+            },
+            'fontSize', 'formatBlock'
+          ],
+          style: "font-family:Verdana;"
         }, this.editor);
         html.setStyle(this.editor.domNode, {
           width: '100%',
@@ -203,7 +227,8 @@ define([
         this.config = config;
 
         this._setWidthForOldVersion().then(lang.hitch(this, function() {
-          this.editor.set('value', config.splash.splashContent || this.nls.defaultContent);
+          //var content = utils.setWABLogoAlt(config);
+          this.editor.set('value', this.editorXssFilter.sanitize(config.splash.splashContent || this.nls.defaultContent));
           this.set('requireConfirm', config.splash.requireConfirm);
           this.showOption.setValue(config.splash.showOption);
           this.confirmOption.setValue(config.splash.confirmEverytime);
@@ -221,6 +246,9 @@ define([
           if ("undefined" !== typeof config.splash.image) {
             this.imageChooser.setDefaultSelfSrc(config.splash.image);
           }
+
+          this.alignSelector.setValue(config.splash.contentVertical);
+
           this.backgroundSelector.setValues(config);
 
           this.buttonColorPicker.setValues({
@@ -233,6 +261,10 @@ define([
           );
 
           this.shelter.hide();
+          this.resize();
+          setTimeout(lang.hitch(this, function () {
+            this.resize();
+          }), 200);
         }));
       },
 
@@ -248,7 +280,16 @@ define([
         return 'isfirst_' + encodeURIComponent(utils.getAppIdFromUrl());
       },
 
-      getConfig: function() {
+      isValid: function () {
+        return this.backgroundSelector.isValid() &&
+          this.buttonColorPicker.isValid() &&
+          this.confirmColorPicker.isValid();
+      },
+      getConfig: function () {
+        if (!this.isValid()) {
+          return false;
+        }
+
         this.config.splash.splashContent = this._getEditorValue();
         this.config.splash.size = this.sizeSelector.getValue();
 
@@ -277,26 +318,25 @@ define([
         }
         this.config.splash.button.text = utils.stripHTML(this.buttonText.value || "");
 
-        this.config.splash.contentVertical = "top";
-
+        this.config.splash.contentVertical = this.alignSelector.getValue();
         return this.config;
       },
 
       _changeRequireConfirm: function() {
         var _selectedNode = null;
-
         if (this.get('requireConfirm')) {
-          _selectedNode = this.requireConfirmSplash;
+          _selectedNode = this.requireConfirmRadio;
           html.setStyle(this.confirmContainer, 'display', 'block');
           html.setStyle(this.showOption.domNode, 'display', 'none');
         } else {
-          _selectedNode = this.noRequireConfirmSplash;
+          _selectedNode = this.noRequireRadio;
           html.setStyle(this.showOption.domNode, 'display', 'block');
           html.setStyle(this.confirmContainer, 'display', 'none');
         }
 
-        var _radio = registry.byNode(query('.jimu-radio', _selectedNode)[0]);
-        _radio.check(true);
+        if(_selectedNode && _selectedNode.setChecked){
+          _selectedNode.setChecked(true);
+        }
       },
 
       destroy: function() {
@@ -336,6 +376,18 @@ define([
         } else {
           def.resolve();
           return def;
+        }
+      },
+
+      resize: function() {
+        var wapperBox = html.getContentBox(this.editorContainer);
+        var iFrame = query('.dijitEditorIFrameContainer', this.editorContainer)[0];
+        var headBox;
+        if (this.editor && this.editor.header) {
+          headBox = html.getContentBox(this.editor.header);
+        }
+        if (iFrame && wapperBox && headBox) {
+          html.setStyle(iFrame, 'height', wapperBox.h - headBox.h - 4 + "px");
         }
       }
     });

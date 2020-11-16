@@ -10,9 +10,9 @@ define({
   "confirmOption": "Sempre mostrar esta tela de abertura cada vez que o aplicativo iniciar",
   "backgroundColor": "Cor do Plano de Fundo",
   "content": "Conteúdo",
-  "contentDescription": "Define o conteúdo que é exibido na tela de abertura",
+  "contentDescription": "Define o conteúdo que é exibido na tela de abertura.",
   "appearance": "Aparência",
-  "appearanceDescription": "Configura a aparência da tela de abertura",
+  "appearanceDescription": "Configura a aparência da tela de abertura.",
   "size": "Tamanho",
   "width": "Largura",
   "height": "Altura",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Preenchimento de imagem",
   "chooseFile": "Escolher arquivo",
   "noFileChosen": "Nenhum arquivo escolhido",
-  "transparency": "Transparência",
   "sizeFill": "Preencher",
   "sizeFit": "Ajustar",
   "sizeStretch": "Estender para preencher",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Cor do botão",
   "buttonText": "Texto do botão",
   "buttonTextColor": "Cor de texto do botão",
+  "contentAlign": "Alinhamento de conteúdo",
+  "alignTop": "Superior",
+  "alignMiddle": "Meio",
   "maskColor": "Cor da máscara",
   "options": "Opções",
-  "optionsDescription": "Configura o comportamento da tela de abertura"
+  "optionsDescription": "Configura o comportamento da tela de abertura."
 });

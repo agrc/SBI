@@ -200,3 +200,8 @@
 .jimu-on-screen-widget-panel >.jimu-panel-title >.title-label {
   font-size: 14px;
 }
+
+/* for share */
+.claro .jimu-shareLink-dropbox-popup .dijitTreeRowSelected .dijitTreeExpando{
+  color: #3b8fc4;
+}

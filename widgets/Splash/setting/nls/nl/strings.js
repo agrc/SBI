@@ -9,10 +9,10 @@ define({
   "defaultConfirmText": "Ik ga akkoord met de bovenstaande gebruiksvoorwaarden en bepalingen",
   "confirmOption": "Dit splash-scherm altijd weergeven wanneer de app gestart wordt",
   "backgroundColor": "Achtergrondkleur",
-  "content": "Inhoud",
-  "contentDescription": "Bepaal de content die wordt weergegeven op het opstartscherm",
+  "content": "Content",
+  "contentDescription": "Bepaal de content die wordt weergegeven op het opstartscherm.",
   "appearance": "Weergave",
-  "appearanceDescription": "De opmaak van het opstartscherm instellen",
+  "appearanceDescription": "De opmaak van het opstartscherm instellen.",
   "size": "Grootte",
   "width": "Breedte",
   "height": "Hoogte",
@@ -22,7 +22,6 @@ define({
   "imageFill": "Beeldvulling",
   "chooseFile": "Bestand kiezen",
   "noFileChosen": "Geen bestand gekozen",
-  "transparency": "Transparant",
   "sizeFill": "Vulling",
   "sizeFit": "Passend maken",
   "sizeStretch": "Uitrekken om te vullen",
@@ -31,7 +30,10 @@ define({
   "buttonColor": "Knopkleur",
   "buttonText": "Knoptekst",
   "buttonTextColor": "Knoptekstkleur",
+  "contentAlign": "Contentuitlijning",
+  "alignTop": "Boven",
+  "alignMiddle": "Midden",
   "maskColor": "Maskerkleur",
   "options": "Opties",
-  "optionsDescription": "Het gedrag van het opstartscherm instellen"
+  "optionsDescription": "Het gedrag van het opstartscherm instellen."
 });

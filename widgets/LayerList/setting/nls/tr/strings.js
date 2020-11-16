@@ -1,11 +1,17 @@
 define({
   "showLegend": "Gösterimi göster",
-  "controlPopupMenuTitle": "Katman içerik menüsünde gösterilecek eylemleri seçin.",
+  "controlPopupMenuTitle": "Katman içerik menüsünde gösterilecek eylemleri seçin",
   "zoomto": "Yakınlaştır",
   "transparency": "Şeffaflık",
-  "controlPopup": "Açılır Pencereyi Etkinleştir / Devre Dışı Bırak",
+  "setVisibilityRange": "Görünürlük Aralığını Ayarla",
+  "controlPopup": "Açılır pencereyi etkinleştir / devre dışı bırak",
   "moveUpAndDown": "Yukarı taşı / Aşağı taşı",
-  "attributeTable": "Öznitelik Tablosunu Aç",
-  "url": "Açıklama / Öğe Ayrıntılarını Göster / İndir",
-  "layerSelectorTitle": "Listede gösterilecek katmanları seçin."
+  "attributeTable": "Öznitelik Tablosunda Görüntüle",
+  "url": "Açıklama / Öğe ayrıntılarını göster / indir",
+  "showHideLabels": "Etiketleri Göster / Gizle",
+  "expandAllLayers": "Tüm katmanları genişlet",
+  "expandAllLayersByDefault": "Tüm katmanları varsayılan olarak genişlet",
+  "layerSelectorTitle": "Listede gösterilecek katmanları seçin",
+  "showTitle": "Başlığı göster",
+  "showBasemap": "Altlık Harita Göster"
 });

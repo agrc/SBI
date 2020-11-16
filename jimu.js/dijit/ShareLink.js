@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// Copyright © 2014 - 2016 Esri. All Rights Reserved.
+// Copyright © Esri. All Rights Reserved.
 //
 // Licensed under the Apache License Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,13 +21,17 @@ define(['dojo/_base/declare',
     'dojo/_base/lang',
     'dojo/_base/array',
     "dojo/dom-class",
+    'dojo/_base/html',
     'dojo/on',
+    'dojo/keys',
+    'dijit/Tooltip',
     'dojo/topic',
     "dojo/query",
     "jimu/utils",
+    "jimu/shareUtils",
     'dojo/_base/config',
     "dojo/cookie",
-    'esri/urlUtils',
+    //"jimu/Query",
     'dojo/text!./templates/ShareLink.html',
     "dojo/string",
     "dijit/form/Select",
@@ -35,8 +39,12 @@ define(['dojo/_base/declare',
     "dojo/dom-attr",
     'dojo/Deferred',
     'esri/request',
-    'esri/tasks/query',
-    'esri/tasks/QueryTask',
+    //'esri/tasks/query',
+    //'esri/tasks/QueryTask',
+    'jimu/dijit/FilterParameters',
+    'esri/symbols/jsonUtils',
+    'esri/InfoTemplate',
+    'jimu/LayerInfos/LayerInfos',
     "esri/symbols/PictureMarkerSymbol",
     "esri/graphic",
     "esri/layers/GraphicsLayer",
@@ -45,23 +53,22 @@ define(['dojo/_base/declare',
     "dijit/form/TextBox",
     "dijit/form/Textarea",
     "dijit/form/RadioButton",
-    "dijit/form/Select",
-    "dijit/form/CheckBox",
-    "dijit/form/NumberTextBox",
+    "jimu/dijit/CheckBox",
     "dijit/form/SimpleTextarea",
     "dijit/form/ValidationTextBox"
   ],
-  function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, lang, array, dojoClass,
-           on, topic, dojoQuery, jimuUtils, dojoConfig, dojoCookie, esriUrlUtils,
-           template, dojoString, Select, NumberTextBox, domAttr, Deferred, esriRequest, EsriQuery, QueryTask,
+  function(declare, _WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin, lang, array, dojoClass, html,
+           on, keys, Tooltip, topic, dojoQuery, jimuUtils, shareUtils, dojoConfig, dojoCookie,// jimuQuery,
+           template, dojoString, Select, NumberTextBox, domAttr, Deferred,
+           esriRequest, /*EsriQuery,*/ FilterParameters, symbolJsonUtils, InfoTemplate, LayerInfos,
            PictureMarkerSymbol, Graphic, GraphicsLayer, FeaturelayerChooserFromMap, LayerChooserFromMapWithDropbox) {
-    /*global escape*/
     var so = declare([_WidgetBase, _TemplatedMixin, _WidgetsInTemplateMixin], {
       templateString: template,
       declaredClass: "jimu.dijit.ShareLink",
-      bitlyUrl: "http://api.bit.ly/v3/shorten?login=arcgisdev&apiKey=R_18b3867d45854ba98d9e0e7c20dbf6d3",
-      bitlyUrlSSL: "https://api-ssl.bitly.com/v3/shorten?login=arcgisdev" +
-      "&apiKey=R_18b3867d45854ba98d9e0e7c20dbf6d3",
+      //bitlyUrl: "http://api.bit.ly/v3/shorten?login=arcgisdev&apiKey=R_18b3867d45854ba98d9e0e7c20dbf6d3",
+      //bitlyUrlSSL: "https://api-ssl.bitly.com/v3/shorten?login=arcgisdev" +
+      //"&apiKey=R_18b3867d45854ba98d9e0e7c20dbf6d3",
+      bitlyUrl: "https://arcg.is/prod/shorten",
       share: {
         shareEmailSubject: "",
         shareTwitterTxt: "",
@@ -73,6 +80,9 @@ define(['dojo/_base/declare',
       _hasZoomLevelMarkerAdded: false,
       _hasMapScaleMarkerAdded: false,
       _hasAddMarkerMarkerAdded: false,
+      HAS_INIT_URL: false,//flag for have got shortLink OR fail to fetch shortLink
+
+      MAX_LAYER_VISIBILITY_LEN: 2048,
 
       //https://developers.arcgis.com/web-appbuilder/guide/app-url-parameters-for-dev.htm
       postMixInProperties: function() {
@@ -83,6 +93,8 @@ define(['dojo/_base/declare',
         this.nls.WKID = window.jimuNls.common.wkid || "wkid";
         this.nls.popupTitle = window.jimuNls.shareLink.popupTitle || "Pop-up title";
         this.nls.zoomLevel = window.jimuNls.shareLink.zoomLevel || "Zoom level";
+        this.nls.asc = window.jimuNls.common.asc;
+        this.nls.desc = window.jimuNls.common.desc;
 
         this.share.shareEmailSubject = this.nls.shareEmailSubject + " " + "${appTitle} ";
         this.share.shareTwitterTxt = this.nls.shareEmailSubject + "${appTitle}\n";
@@ -105,9 +117,15 @@ define(['dojo/_base/declare',
         this._isSharedToPublic = options.isSharedToPublic;
         this._isShowFindLocation = options.isShowFindLocation;
         this._config = options.config;
+
+        // this._queryState = {
+        //   jimuQuery: null,
+        //   querying: false,
+        //   fields: ""
+        // };
       },
       startup: function() {
-        this.baseHrefUrl = this.getBaseHrefUrl(this._portalUrl);
+        this.baseHrefUrl = shareUtils.getBaseHrefUrl(this._portalUrl);
         if (typeof this.optionSrc === "undefined") {
           this.optionSrc = "currentMapExtent";
         }
@@ -126,6 +144,21 @@ define(['dojo/_base/declare',
         // })));
         this._initOptions();
         this._initOptionsEvent();
+
+        var shareLinkOptionsWrapper = dojoQuery(".shareLinkOptionsWrapper", this.domNode);
+        this.own(on(shareLinkOptionsWrapper, "keydown", lang.hitch(this, function(evt){
+          if(evt.keyCode === keys.ESCAPE){
+            evt.stopPropagation();
+            this.backBtn.focus();
+          }
+        })));
+        this.own(on(this.preview, "keydown", lang.hitch(this, function(evt){
+          if(!evt.shiftKey && evt.keyCode === keys.TAB){
+            evt.preventDefault();
+            this.backBtn.focus();
+          }
+        })));
+
       },
       destroy: function() {
         this._cleanMarkerStatus();
@@ -137,11 +170,9 @@ define(['dojo/_base/declare',
 
       //for parent Plugin, set "_isSharedToPublic"
       onShareToPublicChanged: function(isEveryoneChecked) {
-        //change loaclhost to arcgis href, onLine only
         this._isSharedToPublic = isEveryoneChecked;
-        if (this._isOnline) {
-          this.updateUrl(null);
-        }
+        this.updateUrl(null);
+
         if (this._isSharedToPublic) {
           dojoClass.add(this.shareTips, "displaynone");
         } else {
@@ -178,6 +209,9 @@ define(['dojo/_base/declare',
         }
       },
       _initMap: function() {
+        this.layerInfosObj = LayerInfos.getInstanceSync();
+        this.own(on(this.layerInfosObj, "layerInfosIsVisibleChanged", lang.hitch(this, this._watchLayerChange)));
+
         if (window.isBuilder) {
           this.own(topic.subscribe("app/mapLoaded", lang.hitch(this, this._onMapLoaded)));
           this.own(topic.subscribe("app/mapChanged", lang.hitch(this, this._onMapLoaded)));
@@ -244,6 +278,15 @@ define(['dojo/_base/declare',
         } else {
           domAttr.set(this.backBtn, "title", window.jimuNls.common.back);
           this.own(on(this.backBtn, "click", lang.hitch(this, this._toggleLinkOptions)));
+          this.own(on(this.backBtn, "keydown", lang.hitch(this, function(evt){
+            if(evt.keyCode === keys.ENTER || evt.keyCode === keys.SPACE || evt.keyCode === keys.ESCAPE){
+              this._toggleLinkOptions();
+              this.linkOptions.focus();
+            }else if(evt.shiftKey && evt.keyCode === keys.TAB){
+              evt.preventDefault();
+              this.preview.textbox.focus();
+            }
+          })));
         }
         //socialNetworkLinks
         if (false === this._isShowSocialMediaLinks) {
@@ -254,11 +297,27 @@ define(['dojo/_base/declare',
           dojoClass.toggle(this.shareTips, "displaynone");
         }
         this.own(on(this.linkOptions, "click", lang.hitch(this, this._toggleLinkOptions)));
+        this.own(on(this.linkOptions, "keydown", lang.hitch(this, this._toggleLinkOptionsKeydown)));
         this._setInputsClicktoSelect(this._linkUrlTextBox);
+
+        //add tooltip for icons
+        jimuUtils.addTooltipByDomNode(Tooltip, this.emailShare, this.nls.shareEmail);
+        jimuUtils.addTooltipByDomNode(Tooltip, this.FacebookShare, this.nls.shareFacebook);
+        jimuUtils.addTooltipByDomNode(Tooltip, this.TwitterShare, this.nls.shareTwitter);
+        jimuUtils.addTooltipByDomNode(Tooltip, this.googlePlusShare, this.nls.shareGooglePlus);
 
         //this.own(on(this.emailShare, "click", lang.hitch(this, this._toEmail)));
         this.own(on(this.googlePlusShare, "click", lang.hitch(this, this._toGooglePlus)));
+        this.own(on(this.googlePlusShare, "keydown", lang.hitch(this, this._toGooglePlusKeyDown)));
         this._setInputsClicktoSelect(this._embedCodeTextArea);
+
+        this.own(on(this.MoreOptionsContainer, "keydown", lang.hitch(this, function(evt){
+          if(evt.keyCode === keys.ESCAPE){
+            evt.stopPropagation();
+            this._moreOptionsExpandCollapse();
+            this.MoreOptions.focus();
+          }
+        })));
 
         this._sizeOptions = new Select({
           options: [{
@@ -305,6 +364,13 @@ define(['dojo/_base/declare',
               dojoClass.remove(this.CustomSizeContainer, "disable");
           }
         }.bind(this)));
+        this.own(on(this._sizeOptions, "keydown", function(evt) {
+          if (evt.shiftKey && evt.keyCode === keys.TAB) {
+            evt.preventDefault();
+            this._moreOptionsExpandCollapse();
+            this.MoreOptions.focus();
+          }
+        }.bind(this)));
         //widthTextBox
         this._widthTextBox = new NumberTextBox({
           "class": "sizeTextBox inputsText",
@@ -338,15 +404,30 @@ define(['dojo/_base/declare',
             this._updateEmbedCodeFrameSize();
           }
         }.bind(this)));
+        this.own(on(this._heightTextBox, "keydown", function(evt) {
+          if (!evt.shiftKey && evt.keyCode === keys.TAB) {
+            evt.preventDefault();
+            this._moreOptionsExpandCollapse();
+            this.MoreOptions.focus();
+          }
+        }.bind(this)));
+
         this.mobileLayout.set("value", this.share.DEFAULT_MOBILE_LAYOUT);
 
         //hide findLocation
-        this.updateShareLinkOptionsUI({isShowFindLocation: this._isShowFindLocation});
+        //var isShowUseOrg = !!(this._isOnline && this._isSharedToPublic);
+        this.updateShareLinkOptionsUI({
+          isShowFindLocation: this._isShowFindLocation
+        });
 
         this._setInputsClicktoSelect(this.preview);
       },
       _setLinkUrl: function(shortenedUrl) {
         this._linkUrlTextBox.set("value", shortenedUrl);
+        //select the whole text when dijit is focused at first time.
+        if(html.hasClass(this._linkUrlTextBox.domNode, 'dijitFocused')){
+          this._linkUrlTextBox.textbox.select();
+        }
         domAttr.set(this._linkUrlTextBox.domNode, "data-old", shortenedUrl);
       },
       _setEmbedCode: function(url) {
@@ -424,7 +505,10 @@ define(['dojo/_base/declare',
         //token
         var token = "";
         try {
-          token = JSON.parse(dojoCookie("esri_auth")).token;
+          var cookie = dojoCookie("esri_auth");
+          if(cookie){
+            token = JSON.parse(cookie).token;
+          }
         } catch (err) {
           console.log("ShareLink can't parse Auth:" + err);
         }
@@ -441,11 +525,19 @@ define(['dojo/_base/declare',
         });
         dojoClass.add(layerChooser.domNode, "share-layerChooser-dropbox");
         this.layerChooserFromMapWithDropbox = new LayerChooserFromMapWithDropbox({
-          layerChooser: layerChooser
+          layerChooser: layerChooser,
+          customClass: "jimu-shareLink-dropbox-popup"
         });
         this.layerChooserFromMapWithDropbox.placeAt(this.queryFeature_layer);
-        this.own(on(this.layerChooserFromMapWithDropbox,  'selection-change',
+        this.own(on(this.layerChooserFromMapWithDropbox, 'selection-change',
           lang.hitch(this, this._updateQueryFeature_Layer)));
+        //query filter
+        this.queryFeature_valueFilter.filterParams = new FilterParameters();
+        this.queryFeature_valueFilter.filterParams.placeAt(this.queryFeature_valueFilter);
+        this.own(on(this.queryFeature_valueFilter.filterParams, 'change', lang.hitch(this, function (/*expr*/) {
+          this._updateUrlByQueryFeatures();
+          this.updateUrl();
+        })));
 
         //addMarker
         if (typeof this.map.spatialReference !== "undefined" &&
@@ -474,7 +566,13 @@ define(['dojo/_base/declare',
 
         //outline radios
         var shareRadios = dojoQuery(".shareRadios", this.domNode);
-        this.own(on(shareRadios, "change", lang.hitch(this, function(results) {
+        // this.own(on(shareRadios, "change", lang.hitch(this, function(results) {
+        //   var src = results.srcElement || results.target;
+        //   this.optionSrc = domAttr.get(src, "data-id");
+        //   console.log("==>radios change");
+        //   this.updateUrl();
+        // })));
+        this.own(on(shareRadios, "click", lang.hitch(this, function(results) {
           var src = results.srcElement || results.target;
           this.optionSrc = domAttr.get(src, "data-id");
           this.updateUrl();
@@ -502,8 +600,9 @@ define(['dojo/_base/declare',
 
         //this.own(on(this.queryFeature_layer, "change", lang.hitch(this, this._updateQueryFeature_Field)));
         this.own(on(this.queryFeature_field, "change", lang.hitch(this, this._updateQueryFeature_Value)));
-        this.own(on(this.queryFeature_value, "change", lang.hitch(this, this.updateUrl)));
-
+        //this.own(on(this.queryFeature_value, "change", lang.hitch(this, this.updateUrl)));
+        //this.own(on(this.queryFeature_value.dropDown, 'open', lang.hitch(this, this.dropDownOpen)));// dropdown load data as pages
+        //this.own(on(this.queryFeature_sortBtn, "click", lang.hitch(this, this._updateQueryFeature_Sort)));
         this.own(on(this.mobileLayout, inputsChangeEvent, lang.hitch(this, this.updateUrl)));
         this.own(on(this.authtoken, inputsChangeEvent, lang.hitch(this, this.updateUrl)));
 
@@ -526,6 +625,8 @@ define(['dojo/_base/declare',
         })));
       },
       _onMarkersClick: function(results) {
+        shareUtils.disableWebMapPopup(this.map);
+
         this._unselectMarkerBtn();
         this._selectMarkerBtn(results);
 
@@ -549,6 +650,8 @@ define(['dojo/_base/declare',
         this._unselectMarkerBtn();
         this.updateUrl(param);
         this._showPopup();
+
+        shareUtils.enableWebMapPopup(this.map);
       },
 
       _hidePopup: function() {
@@ -563,10 +666,10 @@ define(['dojo/_base/declare',
 
         if (this.optionSrc === "currentMapExtent") {
           var gcsExtStr = this.getMapExtent(this.map);
-          this.resultUrl = this._addQueryParamToUrl(this.baseHrefUrl, "extent", gcsExtStr, true);
+          this.resultUrl = shareUtils.addQueryParamToUrl(this.baseHrefUrl, "extent", gcsExtStr, true);
         } else if (this.optionSrc === "chooseCenterWithLevel") {
           if (false === this._hasZoomLevelMarkerAdded) {
-            this.resultUrl = this._addQueryParamToUrl(this.baseHrefUrl, "center",
+            this.resultUrl = shareUtils.addQueryParamToUrl(this.baseHrefUrl, "center",
               this.getMapCenter(this.map, paramObj), true);
 
             if (paramObj && paramObj.x && paramObj.y) {
@@ -574,35 +677,35 @@ define(['dojo/_base/declare',
             }
           }
 
-          this.resultUrl = this._addQueryParamToUrl(this.resultUrl, "level", this._getMapLevel(), true);
+          this.resultUrl = shareUtils.addQueryParamToUrl(this.resultUrl, "level", this._getMapLevel(), true);
         } else if (this.optionSrc === "chooseCenterWithScale") {
           if (false === this._hasMapScaleMarkerAdded) {
-            this.resultUrl = this._addQueryParamToUrl(this.baseHrefUrl, "center",
+            this.resultUrl = shareUtils.addQueryParamToUrl(this.baseHrefUrl, "center",
               this.getMapCenter(this.map, paramObj), true);
 
-            if(paramObj && paramObj.x && paramObj.y) {
+            if (paramObj && paramObj.x && paramObj.y) {
               this._hasMapScaleMarkerAdded = true;
             }
           }
 
-          this.resultUrl = this._addQueryParamToUrl(this.resultUrl, "scale", this._getMapScale(), true);
+          this.resultUrl = shareUtils.addQueryParamToUrl(this.resultUrl, "scale", this._getMapScale(), true);
         } else if (this.optionSrc === "findLocation") {
           var locate = this.findLocation_input.get("value");
-          this.resultUrl = this._addQueryParamToUrl(this.baseHrefUrl, "find", locate, true);
+          this.resultUrl = shareUtils.addQueryParamToUrl(this.baseHrefUrl, "find", locate, true);
         } else if (this.optionSrc === "queryFeature") {
           this._updateUrlByQueryFeatures();//update
         } else if (this.optionSrc === "addMarker") {
-          if (false === this._hasAddMarkerMarkerAdded){
-            this.resultUrl = this._addQueryParamToUrl(this.baseHrefUrl, "marker",
+          if (false === this._hasAddMarkerMarkerAdded) {
+            this.resultUrl = shareUtils.addQueryParamToUrl(this.baseHrefUrl, "marker",
               this.getMapCenter(this.map, paramObj, null, this._getWkid()), true);
             this.resultUrl += ",";
 
-            if(paramObj && paramObj.x && paramObj.y) {
+            if (paramObj && paramObj.x && paramObj.y) {
               this._hasAddMarkerMarkerAdded = true;
               this._lastAddMarkerParamObj = paramObj;//cache
             }
           } else {
-            this.resultUrl = this._addQueryParamToUrl(this.baseHrefUrl, "marker",
+            this.resultUrl = shareUtils.addQueryParamToUrl(this.baseHrefUrl, "marker",
               this.getMapCenter(this.map, this._lastAddMarkerParamObj, null, this._getWkid()), true);
             this.resultUrl += ",";
           }
@@ -614,38 +717,123 @@ define(['dojo/_base/declare',
           this.resultUrl += encodeURIComponent(this.addMarker_label.get("value") || "");
           var level = this._getMapLevel();
           if (typeof level === "number" && level !== -1) {
-            this.resultUrl = this._addQueryParamToUrl(this.resultUrl, "level", this._getMapLevel(), true);
+            this.resultUrl = shareUtils.addQueryParamToUrl(this.resultUrl, "level", this._getMapLevel(), true);
           } else {
             //use scale if no level
-            this.resultUrl = this._addQueryParamToUrl(this.resultUrl, "scale", this._getMapScale(), true);
+            this.resultUrl = shareUtils.addQueryParamToUrl(this.resultUrl, "scale", this._getMapScale(), true);
           }
         }
 
         //checkbox
-        this.resultUrl = this._removeQueryParamFromUrl(this.resultUrl, "mobileBreakPoint", true);
-        this.resultUrl = this._removeQueryParamFromUrl(this.resultUrl, "locale", true);
-        this.resultUrl = this._removeQueryParamFromUrl(this.resultUrl, "token", true);
+        this.resultUrl = shareUtils.removeQueryParamFromUrl(this.resultUrl, "mobileBreakPoint", true);
+        this.resultUrl = shareUtils.removeQueryParamFromUrl(this.resultUrl, "locale", true);
+        this.resultUrl = shareUtils.removeQueryParamFromUrl(this.resultUrl, "token", true);
+        this.resultUrl = shareUtils.removeQueryParamFromUrl(this.resultUrl, "layers", true);
         if (this.overwirteMobileLayout.checked) {
-          this.resultUrl = this._addQueryParamToUrl(this.resultUrl, "mobileBreakPoint",
+          this.resultUrl = shareUtils.addQueryParamToUrl(this.resultUrl, "mobileBreakPoint",
             this.mobileLayout.getValue(), true);
         }
         if (this.setlanguage.checked) {
-          this.resultUrl = this._addQueryParamToUrl(this.resultUrl, "locale",
+          this.resultUrl = shareUtils.addQueryParamToUrl(this.resultUrl, "locale",
             this.setlanguage_languages.getValue(), true);
         }
         if (this.auth.checked) {
-          this.resultUrl = this._addQueryParamToUrl(this.resultUrl, "token",
+          this.resultUrl = shareUtils.addQueryParamToUrl(this.resultUrl, "token",
             this.authtoken.getValue(), true);
         }
+        if (this.setLayerVisibility.checked) {
+          var tmpUrl = this.resultUrl;
+          var enableShareFlag = false;
+          var paramArray = ["showLayers", "hideLayers", "showLayersEncoded", "hideLayersEncoded"];
+          var mode;
+          for (var i = 0, len = paramArray.length; i < len; i++) {
+            mode = paramArray[i];
+            var allUrl = shareUtils.addQueryParamToUrl(tmpUrl, mode, this._getLayersVisibility(mode), true);
+
+            if (this._isResultURLTooLong(allUrl, this.resultUrl)) {
+              //console.log("---len:" + allUrl.length + "----too long url:");
+            } else {
+              //console.log("---len:" + allUrl.length + "----url mode: " + mode);
+              enableShareFlag = true;
+              this.resultUrl = allUrl;
+              break;
+            }
+          }
+
+          if (!enableShareFlag) {
+            mode = paramArray[0];//all 4 mothods is too long, use "showLayers" param
+            this.resultUrl = shareUtils.addQueryParamToUrl(tmpUrl, mode, this._getLayersVisibility(mode), true);
+          }
+        }
+
+        //check if url is too long, at last
+        this.cleanUrlLengthWarning();
+        if(shareUtils.getQueryParamFromUrl(this.resultUrl, "showLayersEncoded") ||
+          shareUtils.getQueryParamFromUrl(this.resultUrl, "hideLayersEncoded")) {
+          this.setUrlEncodeWarning();
+        }
+        if (this._isResultURLTooLong(this.resultUrl)) {
+          this.setUrlToolongWarning();
+        }
+      },
+
+      setUrlEncodeWarning: function () {
+        this._setUrlLengthWarning(this.nls.urlEncodedTips);
+      },
+      setUrlToolongWarning: function () {
+        this._setUrlLengthWarning(this.nls.urlTooLongTips);
+      },
+      _setUrlLengthWarning: function (nls){
+        html.removeClass(this.urlLengthTips1, "displaynone");
+        html.removeClass(this.urlLengthTips2, "displaynone");
+
+        if(nls){
+          this.urlLengthTips1.innerHTML = nls;
+          this.urlLengthTips2.innerHTML = nls;
+        }
+      },
+      cleanUrlLengthWarning: function () {
+        html.addClass(this.urlLengthTips1, "displaynone");
+        html.addClass(this.urlLengthTips2, "displaynone");
+        this.urlLengthTips1.innerHTML = "";
+        this.urlLengthTips2.innerHTML = "";
+      },
+      _isResultURLTooLong: function (url, baseUrl) {
+        if (!url || !url.length) {
+          return false;
+        }
+
+        var baseLen = 0;
+        if (baseUrl && baseUrl.length) {
+          baseLen = baseUrl.length;
+        }
+
+        if (url.length >= (this.MAX_LAYER_VISIBILITY_LEN - baseLen)) {
+          //console.log("---len:" + url.length + "----too long url:");
+          return true;
+        } else {
+          return false;
+        }
+      },
+
+      _getLayersVisibility: function(mode){
+        var str;
+        var visibility = this.layerInfosObj.getSimplificationState();
+        var layersArray = visibility[mode];
+        if(layersArray && layersArray.join){
+          str = layersArray.join(";");
+        }
+
+        return str;
       },
 
       //queryFeature_layer
       _updateUrlByQueryFeatures: function() {
         var layer = this._getIdFromLayerChoose() || "";
         var field = this.queryFeature_field.get("value");
-        var value = this.queryFeature_value.get("value");
+        var value = this._getQueryFeatureFilterValue();
         //if (layer) {
-        this.resultUrl = this._addQueryParamToUrl(this.baseHrefUrl, "query", layer, true);
+        this.resultUrl = shareUtils.addQueryParamToUrl(this.baseHrefUrl, "query", layer, true);
         if (field) {
           this.resultUrl += ",";
           this.resultUrl += field;
@@ -673,7 +861,7 @@ define(['dojo/_base/declare',
         array.forEach(fields, lang.hitch(this, function(field) {
           if (["esriFieldTypeString", "esriFieldTypeOID", "esriFieldTypeSmallInteger", "esriFieldTypeInteger",
               "esriFieldTypeSingle", "esriFieldTypeDouble"].indexOf(field.type) > -1) {
-            var opt = {label: field.name, value: field.name};
+            var opt = {label: field.name, value: field.name, type: field.type};
             options.push(opt);
           }
         }));
@@ -686,15 +874,48 @@ define(['dojo/_base/declare',
       _updateQueryFeature_Value: function() {
         var queryFields = [];
         var field = this.queryFeature_field.get("value");
-        queryFields.push(field);
-        this._query(queryFields, this._getUrlFromLayerChoose(), this.map).then(lang.hitch(this, function(response) {
-          var options = [];
-          options = this._getQueryedValues(field, response);
-          this.queryFeature_value.removeOption(this.queryFeature_value.getOptions());
-          this.queryFeature_value.addOption(options);
-          this._updateUrlByQueryFeatures();
-          this.updateUrl();
-        }));
+        //this.queryFeature_value.removeOption(this.queryFeature_value.getOptions());
+        if ("" === field) {
+          return;
+        }
+        //queryFields.push(field);
+        var options = this.queryFeature_field.options;
+        for (var i = 0, len = options.length; i < len; i++) {
+          var opt = options[i];
+          if (opt.selected) {
+            queryFields.push(opt);
+          }
+        }
+
+        this._query(queryFields);
+        // this._query(queryFields, this._getSortFromBtn(field), this._getUrlFromLayerChoose(), this.map).then(lang.hitch(this, function(response) {
+        //   var options = [];
+        //   options = this._getQueryedValues(field, response);
+        //   this.queryFeature_value.removeOption(this.queryFeature_value.getOptions());
+        //   this.queryFeature_value.addOption(options);
+        //   this._updateUrlByQueryFeatures();
+        //   this.updateUrl();
+        // }));
+      },
+      _updateQueryFeature_Sort: function () {
+        if(dojoClass.contains(this.queryFeature_sortBtn, 'ASC')){
+          html.setAttr(this.queryFeature_sortBtn, 'title', this.nls.desc);
+        } else {
+          html.setAttr(this.queryFeature_sortBtn, 'title', this.nls.asc);
+        }
+
+        dojoClass.toggle(this.queryFeature_sortBtn, "DESC");
+        dojoClass.toggle(this.queryFeature_sortBtn, "ASC");
+
+        this._updateQueryFeature_Value();
+      },
+
+      _getSortFromBtn: function (field) {
+        var sortStr = field;
+        if (dojoClass.contains(this.queryFeature_sortBtn, "DESC")) {
+          sortStr += " DESC";
+        }//default is ASC
+        return [sortStr];
       },
       _getIdFromLayerChoose: function() {
         var id = null;
@@ -704,7 +925,7 @@ define(['dojo/_base/declare',
         }
         return id;
       },
-      _getFieldsFromLayerChoose: function(){
+      _getFieldsFromLayerChoose: function() {
         var fields = [];
         var item = this.layerChooserFromMapWithDropbox.getSelectedItem();
         if (item && item.layerInfo && item.layerInfo.layerObject && item.layerInfo.layerObject.fields) {
@@ -712,7 +933,7 @@ define(['dojo/_base/declare',
         }
         return fields;
       },
-      _getUrlFromLayerChoose: function(){
+      _getUrlFromLayerChoose: function() {
         var url = "";
         var item = this.layerChooserFromMapWithDropbox.getSelectedItem();
         if (item && item.url) {
@@ -739,7 +960,13 @@ define(['dojo/_base/declare',
       _fixUrlIfIsOnline: function(url) {
         //if online && shared to public , url need to change to www.arcgis.com/***
         if (this._isOnline && this._isSharedToPublic) {
-          var protocol = window.top.location.protocol;
+          var protocol = "";
+          if (window.isBuilder) {
+            protocol = window.top.location.protocol;
+          } else {
+            protocol = window.location.protocol;
+          }
+
           // var pathname = window.top.location.pathname;
           // if (typeof pathname === "string" && pathname.indexOf("webappbuilder")) {
           //   pathname = pathname.replace("webappbuilder", "webappviewer")
@@ -757,27 +984,40 @@ define(['dojo/_base/declare',
         this._updateResUrls(param);
         this._updateLinkOptionsUI();
 
-        this.preview.set("value", this._fixUrlIfIsOnline(this.resultUrl));
+        if (true === this.config.useOrgUrl) {
+          //keep raw url(org url)
+        } else {
+          //false OR undefined
+          this.resultUrl = this._fixUrlIfIsOnline(this.resultUrl);
+        }
+
+        this.preview.set("value", this.resultUrl);
 
         if (param === null) {
           this._generateShortenUrl();//init
         }
+
+        this._updateEmailHref();
       },
 
       _generateShortenUrl: function() {
         var url = this.preview.get("value");
         try {
           if (this.isUseShortenUrl()) {
-            this.shortenUrl(url, this.bitlyUrl, this.bitlyUrlSSL).then(lang.hitch(this, function(res) {
+            this.shortenUrl(url, this.bitlyUrl).then(lang.hitch(this, function(res) {
               this._useShortenUrl(res);
+              this.HAS_INIT_URL = true;
             }), lang.hitch(this, function(res) {
               this._useLengthenUrl(url, res);
+              this.HAS_INIT_URL = true;
             }));
           } else {
             this._useLengthenUrl(url);
+            this.HAS_INIT_URL = true;
           }
         } catch (err) {
           console.error(err);
+          this.HAS_INIT_URL = true;
         }
       },
       _useShortenUrl: function(shortenedUrl) {
@@ -795,10 +1035,15 @@ define(['dojo/_base/declare',
       },
 
       _toFacebook: function() {
-        var a = "http://www.facebook.com/sharer/sharer.php?s\x3d100\x26" +//p[url]\x3d
+        var a = "http://www.facebook.com/sharer/sharer.php?" +
           "u=" + encodeURIComponent(this._linkUrlTextBox.get('value')) +
           "&t=" + encodeURIComponent(jimuUtils.stripHTML(this.socialNetworkTitle(this._appTitle)));
-        window.open(a, "_blank");
+        window.open(a, "", "toolbar=0,status=0,width=626,height=436");
+      },
+      _toFacebookKeyDown: function(evt) {
+        if(evt.keyCode === keys.ENTER){
+          this._toFacebook();
+        }
       },
       _toTwitter: function() {
         var shareStr = dojoString.substitute(this.share.shareTwitterTxt, {
@@ -807,26 +1052,51 @@ define(['dojo/_base/declare',
         var url = this._linkUrlTextBox.get('value');
         //var title = "&text=" + this.socialNetworkTitle(this._appTitle);
         window.open("http://twitter.com/home?status\x3d" +
-          encodeURIComponent(shareStr + url + "\n@ArcGISOnline"), "_blank");
+          encodeURIComponent(shareStr + url + "\n@ArcGISOnline"), "", "toolbar=0,status=0,width=626,height=436");
       },
-      _toEmail: function() {
+      _toTwitterKeyDown: function(evt) {
+        if(evt.keyCode === keys.ENTER){
+          this._toTwitter();
+        }
+      },
+      //_toEmail: function() {
+      // var a = "mailto:?subject\x3d" + dojoString.substitute(this.share.shareEmailSubject, {
+      //       appTitle: jimuUtils.stripHTML(this._appTitle)
+      //     }),
+      //   previewUrl = this.preview.get('value');
+      // a = a + ("\x26body\x3d" + encodeURIComponent(this.nls.shareEmailTxt1) +
+      //   "%0D%0A%0D%0A" + jimuUtils.stripHTML(this._appTitle));
+      // a = a + ("%0D%0A" + encodeURIComponent(previewUrl));
+      // a = a + ("%0D%0A%0D%0A" + encodeURIComponent(this.nls.shareEmailTxt2));
+      // a = a + ("%0D%0A%0D%0A" + encodeURIComponent(this.nls.shareEmailTxt3));
+      // window.top.location.href = a;
+      //},
+      _updateEmailHref: function () {
         var a = "mailto:?subject\x3d" + dojoString.substitute(this.share.shareEmailSubject, {
-              appTitle: jimuUtils.stripHTML(this._appTitle)
-            }),
+          appTitle: jimuUtils.stripHTML(this._appTitle)
+        }),
           previewUrl = this.preview.get('value');
         a = a + ("\x26body\x3d" + encodeURIComponent(this.nls.shareEmailTxt1) +
           "%0D%0A%0D%0A" + jimuUtils.stripHTML(this._appTitle));
         a = a + ("%0D%0A" + encodeURIComponent(previewUrl));
         a = a + ("%0D%0A%0D%0A" + encodeURIComponent(this.nls.shareEmailTxt2));
         a = a + ("%0D%0A%0D%0A" + encodeURIComponent(this.nls.shareEmailTxt3));
-        window.top.location.href = a;
+
+        html.setAttr(this.emailShare, 'href', a);
       },
       _toGooglePlus: function() {
         var link = this._linkUrlTextBox.get('value');
         var url = 'http://plus.google.com/share?url=' + encodeURIComponent(link);
-        window.open(url, "_blank");
+        window.open(url,  "", "toolbar=0,status=0,width=626,height=436");
+      },
+      _toGooglePlusKeyDown: function(evt){
+        if(evt.keyCode === keys.ENTER){
+          this._toGooglePlus();
+        }
       },
       _toggleLinkOptions: function() {
+        shareUtils.enableWebMapPopup(this.map);
+
         var parentNode = this.domNode.parentNode || this.domNode.parentElement;
         var shareOptionsWrapper = dojoQuery(".shareOptionsWrapper", parentNode);
         var shareUrlsWrapper = dojoQuery(".shareUrlsWrapper", this.domNode);
@@ -848,13 +1118,39 @@ define(['dojo/_base/declare',
         dojoClass.toggle(shareUrlsWrapper[0], "displaynone");
         dojoClass.toggle(shareLinkOptionsWrapper[0], "displaynone");
       },
+      _toggleLinkOptionsKeydown: function(evt){
+        if(evt.keyCode === keys.ENTER){
+          this._toggleLinkOptions();
+          //focus current selected option when opening linkOptions
+          if(this._isShareLinkOptionsShow()){
+            var radios = dojoQuery(".shareRadios input", this.shareOptionsRadios);
+            for (var i = 0, len = radios.length; i < len; i++) {
+              var radio = radios[i];
+              if(radio.checked){
+                radio.focus();
+              }
+            }
+          }
+        }
+      },
       _moreOptionsExpandCollapse: function() {
         dojoClass.toggle(this.MoreOptionsContainer, "displaynone");
         dojoClass.toggle(this.MoreOptionsIcon, "rotate");
       },
+      _moreOptionsExpandCollapseKeyDown: function(evt){
+        if(evt.keyCode === keys.ENTER){
+          this._moreOptionsExpandCollapse();
+          if(!html.hasClass(this.MoreOptionsContainer, 'displaynone')){
+            this._sizeOptions.focus();
+          }
+        }
+      },
       _setInputsClicktoSelect: function(dijit) {
         domAttr.set(dijit, "onclick", "this.select()");
         domAttr.set(dijit, "onmouseup", "return false;");
+
+        domAttr.set(dijit, "onfocus", "this.select()");
+        domAttr.set(dijit, "onblur", "return false;");
       },
 
       /////////////////////////////////////////////////////////
@@ -866,14 +1162,11 @@ define(['dojo/_base/declare',
         }
       },
       // calls handler(shortenedUrl) on success
-      shortenUrl: function(url, bitlyUrl, bitlyUrlSSL) {
+      shortenUrl: function(url, bitlyUrl) {
         var def = new Deferred();
 
-        var uri = bitlyUrl;
-        if (location.protocol === "https:") {
-          uri = bitlyUrlSSL;
-        }
-        uri += "&longUrl=" + escape(url) + "&format=json";
+        var uri = shareUtils.addQueryParamToUrl(bitlyUrl, "longUrl", url, true);
+        uri = shareUtils.addQueryParamToUrl(uri, "format", "json", true);
 
         esriRequest({
           url: uri,
@@ -910,9 +1203,16 @@ define(['dojo/_base/declare',
       getMapExtent: function(map) {
         var accuracy = 1E4;
         var extent = map.extent;
+        var sr = "";
+        if (extent.spatialReference.wkid) {
+          sr = extent.spatialReference.wkid;
+        } else if (!extent.spatialReference.wkid && extent.spatialReference.wkt) {
+          sr = "wkt=" + extent.spatialReference.wkt;
+        }
+
         return null !== extent ? this._roundValue(extent.xmin, accuracy) + "," +
         this._roundValue(extent.ymin, accuracy) + "," + this._roundValue(extent.xmax, accuracy) + "," +
-        this._roundValue(extent.ymax, accuracy) + "," + extent.spatialReference.wkid : "";
+        this._roundValue(extent.ymax, accuracy) + "," + sr : "";
       },
 
       _roundValue: function(a, b) {
@@ -944,15 +1244,15 @@ define(['dojo/_base/declare',
       _getWkid: function() {
         return this.addMarker_spatialReference.get("value") || "";
       },
-
-      _query: function(outFields, url, map) {
-        var queryParams = new EsriQuery();
-        queryParams.where = "1=1";
-        queryParams.outSpatialReference = map.spatialReference;
-        queryParams.outFields = outFields;
-        var queryTask = new QueryTask(url);
-        return queryTask.execute(queryParams);
-      },
+      // _query: function(outFields, sort, url, map) {
+      //   var queryParams = new EsriQuery();
+      //   queryParams.where = "1=1";
+      //   queryParams.outSpatialReference = map.spatialReference;
+      //   queryParams.outFields = outFields;
+      //   queryParams.orderByFields = sort;
+      //   var queryTask = new QueryTask(url);
+      //   return queryTask.execute(queryParams);
+      // },
       _getQueryedValues: function(outField, response) {
         var features = response.features;
         var options = [];
@@ -964,44 +1264,82 @@ define(['dojo/_base/declare',
         return options;
       },
 
-      getBaseHrefUrl: function(portalUrl) {
-        var webappviewer = window.appInfo.appType === "HTML3D" ? "webappviewer3d" : "webappviewer";
-        var href = "";
-        if (window.isXT) {
-          href = window.location.protocol + "//" + window.location.host + window.appInfo.appPath;
-        } else {
-          var urlParams = jimuUtils.urlToObject(window.location.href).query || {};
-          if (urlParams.appid) {
-            //appid for apps that be created by templates
-            href = portalUrl + 'apps/' + webappviewer + '/index.html?appid=' + urlParams.appid;
-          } else if (urlParams.id) {
-            //portal or onLine apps
-            href = portalUrl + 'apps/' + webappviewer + '/index.html?id=' + urlParams.id;
-          } else {
-            //published app: without id in url
-            href = window.top.location.href;
-          }
-        }
-        return href;
-      },
-
       //add and remove marker ,when click marker icon in linkOptions
-      _addGraphicsLayer: function() {
+      _addGraphicsLayer: function () {
         if (!window.isBuilder && typeof this._graphicsLayer === "undefined") {
-          this._graphicsLayer = new GraphicsLayer();
-          this.map.addLayer(this._graphicsLayer);
+          if (this.map.getLayer("marker-feature-action-layer")) {
+            this._graphicsLayer = this.map.getLayer("marker-feature-action-layer");
+          } else {
+            this._graphicsLayer = new GraphicsLayer({ id: "marker-feature-action-layer" });
+            this.map.addLayer(this._graphicsLayer);
+          }
         }
       },
       _removeGraphicsLayer: function() {
         if (!window.isBuilder && typeof this._graphicsLayer !== "undefined") {
+          //close popup
+          if (this.map.infoWindow && this.map.infoWindow.features &&
+            this.map.infoWindow.features[0] === this._markerGraphic) {
+            this.map.infoWindow.hide();
+          }
+          //clean text
+          if (this._markerGraphic && this._markerGraphic._textSymbol) {
+            this._graphicsLayer.remove(this._markerGraphic._textSymbol);
+          }
+
           this._graphicsLayer.remove(this._markerGraphic);
           this._markerGraphic = null;
         }
       },
-      _addGraphicsLayerMarker: function(evt) {
+      _addGraphicsLayerMarker: function (evt) {
         if (!window.isBuilder && typeof this._graphicsLayer !== "undefined") {
-          this._markerGraphic = this._getMarkerGraphic(evt.mapPoint);
-          this._graphicsLayer.add(this._markerGraphic);
+          if (this.optionSrc !== "addMarker") {
+            this._markerGraphic = this._getMarkerGraphic(evt.mapPoint);
+            this._graphicsLayer.add(this._markerGraphic);
+          } else {
+            //1
+            var infoTemplate = new InfoTemplate('', (this.addMarker_title.get("value") || ""));
+            //template.isIncludeShareUrl
+            //2
+            var markerSymbol = symbolJsonUtils.fromJson({
+              "type": "esriPMS",
+              "url": require.toUrl('jimu') + "/images/EsriBluePinCircle26.png",
+              "contentType": "image/png"
+            });
+            markerSymbol.width = 26;
+            markerSymbol.height = 26;
+            markerSymbol.setOffset(0, 12);
+            this._markerGraphic = new Graphic(evt.mapPoint, markerSymbol, null, infoTemplate);
+            this._graphicsLayer.add(this._markerGraphic);
+
+            //3
+            var textSymbol = symbolJsonUtils.fromJson({
+              "color": [0, 0, 0, 255],
+              "type": "esriTS",
+              "verticalAlignment": "baseline",
+              "horizontalAlignment": "left",
+              "angle": 0,
+              "xoffset": 0,
+              "yoffset": 0,
+              "rotated": false,
+              "kerning": true,
+              "font": {
+                "size": 12,
+                "style": "normal",
+                "weight": "bold",
+                "family": "Arial"
+              },
+              "text": this.addMarker_label.get("value") || ""
+            });
+            if (textSymbol) {
+              textSymbol.xoffset = markerSymbol.width / 2;
+              textSymbol.yoffset = markerSymbol.height / 2 + markerSymbol.yoffset;
+              var textG = new Graphic(evt.mapPoint, textSymbol);
+              this._graphicsLayer.add(textG);
+
+              this._markerGraphic._textSymbol = textG;
+            }
+          }
         }
       },
       _getMarkerGraphic: function(mapPoint) {
@@ -1021,14 +1359,15 @@ define(['dojo/_base/declare',
           dojoClass.remove(markerBtn, "selected");
         }
       },
-      _selectMarkerBtn: function(results){
+      _selectMarkerBtn: function(results) {
         var src = results.srcElement || results.target;
         dojoClass.add(src, "selected");
       },
-      _cleanMarkerStatus: function(){
+      _cleanMarkerStatus: function() {
         if (this._mapClickHandler && this._mapClickHandler.remove) {
           this._mapClickHandler.remove();
         }
+
         this._unselectMarkerBtn();
         this._removeGraphicsLayer();
       },
@@ -1058,47 +1397,144 @@ define(['dojo/_base/declare',
 
         return url;
       },
-      //jimuUtil's method can't encodeURIComponent(or will decodeURIComponent)
-      _addQueryParamToUrl: function(url, paramName, paramValue, isEncode) {
-        var urlObject = esriUrlUtils.urlToObject(url);
-        if (!urlObject.query) {
-          urlObject.query = {};
+      _watchLayerChange: function(){
+        if(this.setLayerVisibility.checked){
+          this.updateUrl();
         }
-        urlObject.query[paramName] = paramValue;
-        var ret = urlObject.path;
-        for (var q in urlObject.query) {
-          var val = urlObject.query[q];
-          if (true === isEncode) {
-            val = encodeURIComponent(val);
-          }
-
-          if (ret === urlObject.path) {
-            ret = ret + '?' + q + '=' + val;
-          } else {
-            ret = ret + '&' + q + '=' + val;
-          }
-        }
-        return ret;
       },
-      _removeQueryParamFromUrl: function(url, paramName, isEncode) {
-        var urlObject = esriUrlUtils.urlToObject(url);
-        if (urlObject.query) {
-          delete urlObject.query[paramName];
-        }
-        var ret = urlObject.path;
-        for (var q in urlObject.query) {
-          var val = urlObject.query[q];
-          if (true === isEncode) {
-            val = encodeURIComponent(val);
-          }
 
-          if (ret === urlObject.path) {
-            ret = ret + '?' + q + '=' + val;
-          } else {
-            ret = ret + '&' + q + '=' + val;
+      //query by pages
+      _query: function (outFields) {
+        //this._queryState.fields = field;
+        // var queryParams = new EsriQuery();
+        // queryParams.where = "1=1";
+        // queryParams.outSpatialReference = this.map.spatialReference;
+        // queryParams.outFields = outFields;
+        // queryParams.orderByFields = this._getSortFromBtn(field);
+        // this._queryState.jimuQuery = new jimuQuery({
+        //   url: this._getUrlFromLayerChoose(),
+        //   query: queryParams,
+        //   pageSize: 2000
+        // });
+        if (!outFields || !outFields[0]) {
+          return;
+        }
+
+        var field = outFields[0],
+          shortType = this._getFieldShortType(field),
+          item = this.layerChooserFromMapWithDropbox.getSelectedItem();
+        var filterObj = {
+          layerId: item.layerInfo.id,
+          url: item.url,
+          name: item.name,
+          filter: {
+            logicalOperator: "AND",
+            parts: [{
+              fieldObj: { name: field.value, label: field.label, dateFormat: "", shortType: shortType, type: field.type },
+              operator: shortType + "OperatorIs", //date | number | string
+              valueObj: { isValid: true, type: "unique", value: null },
+              interactiveObj: { prompt: "...", hint: "", cascade: "none" }
+            }],
+            expr: "",
+            displaySQL: ""
+          },
+          icon: null,
+          enableMapFilter: true
+        };
+        var layerInfo = this.layerInfosObj.getLayerInfoById(filterObj.layerId);
+        if (layerInfo) {
+          layerInfo.getLayerObject().then(lang.hitch(this, function (layerObject) {
+            var layerId = filterObj.layerId;
+            var partsObj = lang.clone(filterObj.filter);
+            partsObj.wId = this.id + '_' + layerObject.id + '_' + html.getAttr(this.queryFeature_valueFilter, 'data-index');
+            /*var buildDef = */this.queryFeature_valueFilter.filterParams.build(filterObj.url, layerObject, partsObj, layerId, this.id);
+            this.queryFeature_valueFilter.expr = this.queryFeature_valueFilter.filterParams.getFilterExpr();
+          }));
+        }
+
+        //update link, waiting for the value update
+        this._updateUrlByQueryFeatures();
+        this.updateUrl();
+      },
+      // _queryNextPage: function () {
+      //   //this._queryState.jimuQuery.getCurrentPageIndex();
+      //   if (!this._queryState.querying && (this._queryState.jimuQuery && this._queryState.jimuQuery.queryNextPage)) {
+      //     this._queryState.querying = true;
+
+      //     this._queryState.jimuQuery.queryNextPage().then(lang.hitch(this, function (response) {
+      //       //this.queryFeature_value.closeDropDown();
+      //       this._queryState.querying = false;
+
+      //       var options = [];
+      //       options = this._getQueryedValues(this._queryState.fields, response);
+      //       //this.queryFeature_value.removeOption(this.queryFeature_value.getOptions());
+      //       this.queryFeature_value.addOption(options);
+
+      //       this.queryFeature_value.reset()
+
+      //       this._updateUrlByQueryFeatures();
+      //       this.updateUrl();
+      //       //this.queryFeature_value.openDropDown();
+      //     }))
+      //   }
+      // },
+      // _queryCount: function () {
+      //   this._queryState.jimuQuery.getFeatureCount().then(lang.hitch(this, function (response) {
+      //     console.log("query Count==> " + response);
+      //   }));
+      // },
+      // _queryAll: function () {
+      //   this._queryState.jimuQuery.getAllFeatures().then(lang.hitch(this, function (response) {
+      //     this._queryState.querying = false;
+
+      //     var options = [];//
+      //     options = this._getQueryedValues(this._queryState.fields, response);
+      //     this.queryFeature_value.removeOption(this.queryFeature_value.getOptions());
+      //     this.queryFeature_value.addOption(options);
+
+      //     this._updateUrlByQueryFeatures();
+      //     this.updateUrl();
+      //   }))
+      // },
+      // dropDownOpen: function () {
+      //   if (this.queryFeature_value.dropDown.domNode.parentElement) {
+      //     // if (this._queryHanlder) {
+      //     //   this._queryHanlder.remove();
+      //     // } else {
+      //     //   console.log("==> bind _popupWrapper");
+      //     //   this._queryHanlder = on(this.queryFeature_value.dropDown.domNode.parentElement, 'scroll', lang.hitch(this, this.dropDownScroll));
+      //     // }
+      //     console.log("==> bind _popupWrapper");
+      //     this.own(on(this.queryFeature_value.dropDown.domNode.parentElement, 'scroll', lang.hitch(this, this.dropDownScroll)));
+      //   }
+      // },
+      // dropDownScroll: function (evt) {
+      //   var scrollDiff = 50;
+      //   var target = evt.target;
+      //   var diff = target.scrollHeight - target.clientHeight; //offsetHeight
+      //   if ((diff - target.scrollTop <= scrollDiff) && !this._queryState.querying) {
+      //     this._queryNextPage();
+      //     //console.log("page+");
+      //   }
+      // },
+      _getFieldShortType: function (fieldObj) {
+        var type = fieldObj.type, shortType;
+        if (type === "esriFieldTypeString") {
+          shortType = "string";
+        } else {
+          shortType = "number";
+        }
+        return shortType;
+      },
+      _getQueryFeatureFilterValue: function () {
+        var v = "";
+        if (this.queryFeature_valueFilter.filterParams.partsObj && this.queryFeature_valueFilter.filterParams.getValueProviders()[0].getValueObject()) {
+          v = this.queryFeature_valueFilter.filterParams.getValueProviders()[0].getValueObject().value;
+          if (v.toFixed) {
+            v = v.toString();
           }
         }
-        return ret;
+        return v;
       }
     });
     return so;
