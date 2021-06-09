@@ -1,10 +1,12 @@
 {
   "hosting": {
-    "public": "dist",
+    "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/.git",
+      "**/.github"
     ],
     "headers": [
       {
