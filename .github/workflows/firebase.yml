@@ -5,7 +5,7 @@ on: push
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/dev'
     environment:
       name: dev
       url: https://sbi.dev.utah.gov
@@ -35,7 +35,7 @@ jobs:
 
   deploy-prod:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/main'
     environment:
       name: prod
       url: https://sbi.utah.gov
