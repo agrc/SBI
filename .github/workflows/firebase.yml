@@ -1,6 +1,14 @@
 name: firebase hosting
 
-on: push
+on:
+  push:
+    paths:
+      - ".github/workflows/firebase.yml"
+      - "firebase.json"
+      - ".firebaserc"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.html"
 
 jobs:
   deploy-dev:
