@@ -1,7 +1,11 @@
 {
   "cSpell.words": [
     "apikey",
+    "autoplay",
     "firebaserc",
-    "hostingchannels"
+    "fullscreen",
+    "hostingchannels",
+    "nosniff",
+    "SAMEORIGIN"
   ]
 }
