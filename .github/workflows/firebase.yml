@@ -10,6 +10,14 @@ on:
       - "**/*.json"
       - "**/*.html"
 
+concurrency:
+  group: '${{ github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
@@ -19,16 +27,25 @@ jobs:
       url: https://sbi.dev.utah.gov
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v3
 
-      - name: Update Config
+      - id: auth
+        name: 🗝️ Authenticate to Google Cloud
+        uses: google-github-actions/auth@v0
+        with:
+          access_token_scopes: 'email, openid, https://www.googleapis.com/auth/cloud-platform, https://www.googleapis.com/auth/firebase'
+          workload_identity_provider: ${{ secrets.IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+          create_credentials_file: true
+
+      - name: ⚙️ Update Config
         env:
           API_KEY: ${{ secrets.AGRC_API_KEY }}
         run: echo "{\"apikey\":\"$API_KEY\"}" > configs/SBILocate/config_widgets_SBILocate_Widget_36.json
 
-      - name: Cache firebase
-        uses: actions/cache@v2
+      - name: 🪣 Cache firebase
+        uses: actions/cache@v3
         with:
           path: ./.firebase
           key: ${{ runner.OS }}-firebase-${{ hashFiles('**/*.cache') }}
@@ -36,13 +53,11 @@ jobs:
             ${{ runner.OS }}-firebase-
             ${{ runner.OS }}-
 
-      - name: Firebase Deploy
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.SERVICE_ACCOUNT }}"
-          channelId: live
-          projectId: "${{ secrets.PROJECT_ID }}"
+      - name: 🚀 Firebase deploy
+        run: >
+          npx firebase-tools deploy
+          --only hosting
+          --project ${{ secrets.PROJECT_ID }}
         env:
           FIREBASE_CLI_PREVIEWS: hostingchannels
 
@@ -54,16 +69,25 @@ jobs:
       url: https://sbi.utah.gov
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v3
 
-      - name: Update Config
+      - id: auth
+        name: 🗝️ Authenticate to Google Cloud
+        uses: google-github-actions/auth@v0.4.4
+        with:
+          access_token_scopes: 'email, openid, https://www.googleapis.com/auth/cloud-platform, https://www.googleapis.com/auth/firebase'
+          workload_identity_provider: ${{ secrets.IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+          create_credentials_file: true
+
+      - name: ⚙️ Update Config
         env:
           API_KEY: ${{ secrets.AGRC_API_KEY }}
         run: echo "{\"apikey\":\"$API_KEY\"}" > configs/SBILocate/config_widgets_SBILocate_Widget_36.json
 
-      - name: Cache firebase
-        uses: actions/cache@v2
+      - name: 🪣 Cache firebase
+        uses: actions/cache@v3
         with:
           path: ./.firebase
           key: ${{ runner.OS }}-firebase-${{ hashFiles('**/*.cache') }}
@@ -71,12 +95,10 @@ jobs:
             ${{ runner.OS }}-firebase-
             ${{ runner.OS }}-
 
-      - name: Firebase Deploy
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.SERVICE_ACCOUNT }}"
-          channelId: live
-          projectId: "${{ secrets.PROJECT_ID }}"
+      - name: 🚀 Firebase deploy
+        run: >
+          npx firebase-tools deploy
+          --only hosting
+          --project ${{ secrets.PROJECT_ID }}
         env:
           FIREBASE_CLI_PREVIEWS: hostingchannels
