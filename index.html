@@ -63,9 +63,29 @@
     //   progress.style.width = (((i - 1)/count) * 100) + '%';
     // }
   </script>
-  <script src="/__/firebase/8.6.8/firebase-app.js"></script>
-  <script src="/__/firebase/8.6.8/firebase-analytics.js"></script>
-  <script src="/__/firebase/init.js"></script>
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1VzN9Z-e1vA5BXTnF5kFBYnmM4Ul61gA",
+    authDomain: "ut-dts-agrc-sbi-prod.firebaseapp.com",
+    projectId: "ut-dts-agrc-sbi-prod",
+    storageBucket: "ut-dts-agrc-sbi-prod.appspot.com",
+    messagingSenderId: "574218313481",
+    appId: "1:574218313481:web:9661527ba158f05a3d7dd8",
+    measurementId: "G-NLNRVN17MQ"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 </head>
 
 <body class="claro jimu-main-font">
