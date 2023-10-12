@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
+        with:
+          show-progress: false
 
       - id: auth
         name: 🗝️ Authenticate to Google Cloud
@@ -71,6 +73,8 @@ jobs:
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
+        with:
+          show-progress: false
 
       - id: auth
         name: 🗝️ Authenticate to Google Cloud
