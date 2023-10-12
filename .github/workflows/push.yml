@@ -1,4 +1,4 @@
-name: firebase hosting
+name: Push Events
 
 on:
   push:
