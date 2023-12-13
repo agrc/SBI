@@ -1,13 +1,3 @@
 # State Bureau of Investigation
 
-This application was built for Human Services to help with child abuse reports.
-
-## Urls
-
-- Production: [https://sbilocate.ugrc.utah.gov](https://sbilocate.ugrc.utah.gov)
-- Development: [https://sbi.dev.utah.gov](https://sbi.dev.utah.gov)
-
-### About
-
-- Firebase hosting
-- Custom Web Application builder
+This application has been replaced by an experience builder app https://experience.arcgis.com/experience/c1b5822d55694628a5577bc218c7bee2/
